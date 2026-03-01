@@ -1,0 +1,16 @@
+{
+  "file_name": "tsconfig.json",
+  "revision_id": "df35980f-51f3-42aa-9332-9f590e0993f9",
+  "metadata": {
+    "timestamp": "2026-03-01T09:07:19.719835",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 562,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Cody",
+    "description": ""
+  },
+  "content": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"useDefineForClassFields\": true,\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\n    \"module\": \"ESNext\",\n    \"skipLibCheck\": true,\n    \"moduleResolution\": \"bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"noEmit\": true,\n    \"jsx\": \"react-jsx\",\n    \"strict\": true,\n    \"noUnusedLocals\": true,\n    \"noUnusedParameters\": true,\n    \"noFallthroughCasesInSwitch\": true\n  },\n  \"include\": [\"src\"],\n  \"references\": [{ \"path\": \"./tsconfig.node.json\" }]\n}\n",
+  "saved_at": "2026-03-01T09:07:19.719835"
+}

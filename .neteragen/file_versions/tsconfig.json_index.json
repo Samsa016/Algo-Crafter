@@ -1,0 +1,47 @@
+{
+  "file_name": "tsconfig.json",
+  "revisions": [
+    {
+      "revision_id": "213b0fe9-ea19-44fc-9426-95de307b97f7",
+      "metadata": {
+        "timestamp": "2026-03-01T10:31:52.485008",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 509,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-01T10:31:52.489346"
+    },
+    {
+      "revision_id": "df35980f-51f3-42aa-9332-9f590e0993f9",
+      "metadata": {
+        "timestamp": "2026-03-01T09:07:19.719835",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 562,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-01T09:07:19.720835"
+    },
+    {
+      "revision_id": "0d5a0b84-5a49-4e62-a74c-1107bf351475",
+      "metadata": {
+        "timestamp": "2026-03-01T09:07:19.715318",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-01T09:07:19.717834"
+    }
+  ]
+}

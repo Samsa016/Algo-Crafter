@@ -1,0 +1,16 @@
+{
+  "file_name": "src/components/Header.tsx",
+  "revision_id": "f52f5050-e73a-4ddf-ba8b-e566c5d08fc4",
+  "metadata": {
+    "timestamp": "2026-03-01T09:07:39.308142",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1456,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Cody",
+    "description": ""
+  },
+  "content": "import { useSimulationStore } from '../store';\n\nexport default function Header() {\n  const { balance, isRunning, toggleSimulation } = useSimulationStore();\n\n  const balanceColor = balance >= 10000 ? 'text-[#00ff88]' : 'text-[#ff4d4d]';\n\n  return (\n    <header className=\"flex items-center justify-between px-6 py-4 bg-[#161b22]/80 backdrop-blur-md border-b border-white/10\">\n      <div className=\"flex items-center gap-3\">\n        <span className=\"text-xl font-bold tracking-widest text-white uppercase\">\n          Algo<span className=\"text-[#00ff88]\">-Crafter</span>\n        </span>\n      </div>\n\n      <div className=\"flex items-center gap-6\">\n        <div className=\"text-right\">\n          <p className=\"text-xs text-white/40 uppercase tracking-widest\">Balance</p>\n          <p className={`font-mono text-lg font-semibold ${balanceColor}`}>\n            {balance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}\n          </p>\n        </div>\n\n        <button\n          onClick={toggleSimulation}\n          className={`px-5 py-2 rounded-lg font-semibold text-sm tracking-wide transition-all duration-200 border ${\n            isRunning\n              ? 'bg-[#ff4d4d]/10 border-[#ff4d4d]/50 text-[#ff4d4d] hover:bg-[#ff4d4d]/20'\n              : 'bg-[#00ff88]/10 border-[#00ff88]/50 text-[#00ff88] hover:bg-[#00ff88]/20'\n          }`}\n        >\n          {isRunning ? '⏹ Stop' : '▶ Start'}\n        </button>\n      </div>\n    </header>\n  );\n}\n",
+  "saved_at": "2026-03-01T09:07:39.308142"
+}

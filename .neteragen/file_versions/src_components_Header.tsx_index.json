@@ -1,0 +1,75 @@
+{
+  "file_name": "src/components/Header.tsx",
+  "revisions": [
+    {
+      "revision_id": "b5ffb355-db5a-4a15-b317-6cc7327be535",
+      "metadata": {
+        "timestamp": "2026-03-01T16:03:22.071881",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 5442,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-01T16:03:22.074554"
+    },
+    {
+      "revision_id": "4c69474c-8d30-46ed-ac31-a85e9c94db8d",
+      "metadata": {
+        "timestamp": "2026-03-01T16:03:08.169496",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 4454,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-01T16:03:08.196010"
+    },
+    {
+      "revision_id": "61d068b1-a3bd-4f2e-ac4e-642daed9031a",
+      "metadata": {
+        "timestamp": "2026-03-01T12:47:36.140068",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 4280,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-01T12:47:36.143464"
+    },
+    {
+      "revision_id": "f52f5050-e73a-4ddf-ba8b-e566c5d08fc4",
+      "metadata": {
+        "timestamp": "2026-03-01T09:07:39.308142",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 1456,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-01T09:07:39.316818"
+    },
+    {
+      "revision_id": "1e74b38c-096d-4d9b-83a2-1fb7c78297be",
+      "metadata": {
+        "timestamp": "2026-03-01T09:07:39.305828",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 0,
+        "is_reverted": false,
+        "git_branch_name": "",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-01T09:07:39.305828"
+    }
+  ]
+}

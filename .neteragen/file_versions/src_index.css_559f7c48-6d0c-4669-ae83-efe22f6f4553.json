@@ -1,0 +1,16 @@
+{
+  "file_name": "src/index.css",
+  "revision_id": "559f7c48-6d0c-4669-ae83-efe22f6f4553",
+  "metadata": {
+    "timestamp": "2026-03-01T09:08:06.258874",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 216,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Cody",
+    "description": ""
+  },
+  "content": "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n* {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  font-family: 'Inter', system-ui, -apple-system, sans-serif;\n  -webkit-font-smoothing: antialiased;\n}\n",
+  "saved_at": "2026-03-01T09:08:06.258874"
+}

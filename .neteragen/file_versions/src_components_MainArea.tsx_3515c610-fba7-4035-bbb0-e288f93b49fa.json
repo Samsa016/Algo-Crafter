@@ -1,0 +1,16 @@
+{
+  "file_name": "src/components/MainArea.tsx",
+  "revision_id": "3515c610-fba7-4035-bbb0-e288f93b49fa",
+  "metadata": {
+    "timestamp": "2026-03-01T09:07:47.115111",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 1148,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Cody",
+    "description": ""
+  },
+  "content": "import { useSimulationStore } from '../store';\n\nexport default function MainArea() {\n  const { currentPrice, isRunning } = useSimulationStore();\n\n  return (\n    <main className=\"flex-1 flex flex-col items-center justify-center p-6\">\n      <div className=\"w-full h-full bg-[#161b22]/80 backdrop-blur-md border border-white/10 rounded-xl flex flex-col items-center justify-center gap-4 min-h-[400px]\">\n        <div className=\"text-center\">\n          <p className=\"text-xs text-white/30 uppercase tracking-widest mb-1\">Current Price</p>\n          <p className=\"font-mono text-4xl font-bold text-white\">\n            ${currentPrice.toFixed(2)}\n          </p>\n        </div>\n\n        <div className={`flex items-center gap-2 text-sm font-mono ${isRunning ? 'text-[#00ff88]' : 'text-white/30'}`}>\n          <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-[#00ff88] animate-pulse' : 'bg-white/20'}`} />\n          {isRunning ? 'SIMULATION RUNNING' : 'SIMULATION IDLE'}\n        </div>\n\n        <p className=\"text-white/20 text-sm mt-6 tracking-widest uppercase\">\n          Canvas Simulation Engine Mount\n        </p>\n      </div>\n    </main>\n  );\n}\n",
+  "saved_at": "2026-03-01T09:07:47.115111"
+}

@@ -1,0 +1,335 @@
+import { create } from 'zustand';
+
+// ─── Web Audio SFX ────────────────────────────────────────────────────────────
+
+const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+function playSound(type: 'BUY' | 'SELL' | 'FAILED') {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  if (type === 'FAILED') {
+    // Low square-wave buzz
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.18);
+    return;
+  }
+
+  // ── Cash-register "cha-ching" ──────────────────────────────────────────────
+  // Two metallic bell tones fired in quick succession
+  const now = audioCtx.currentTime;
+  const tones = type === 'BUY'
+    ? [{ freq: 2637, delay: 0 }, { freq: 3136, delay: 0.07 }]   // E7 → G7 (bright register)
+    : [{ freq: 2093, delay: 0 }, { freq: 2637, delay: 0.07 }];  // C7 → E7 (slightly lower sell)
+
+  for (const { freq, delay } of tones) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now + delay);
+    // Fast metallic decay — coin-bell character
+    gain.gain.setValueAtTime(0, now + delay);
+    gain.gain.linearRampToValueAtTime(0.18, now + delay + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.22);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now + delay);
+    osc.stop(now + delay + 0.25);
+  }
+}
+
+export interface OHLCCandle {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+export interface StrategyNode {
+  id: string;
+  type: 'CONDITION' | 'ACTION';
+  x: number;
+  y: number;
+  data: {
+    label: string;
+    targetPrice?: number;
+    operator?: 'lt' | 'gt';
+    side?: 'BUY' | 'SELL';
+    amount?: number;
+  };
+}
+
+export interface Connection {
+  fromId: string;
+  toId: string;
+}
+
+export interface TradeLog {
+  id: string;
+  message: string;
+  time: string;
+  type: 'BUY' | 'SELL' | 'FAILED';
+}
+
+export interface ChartTrade {
+  id: string;
+  type: 'BUY' | 'SELL';
+  price: number;
+  historyIndex: number;
+}
+
+const HISTORY_CAP = 100;
+
+interface SimulationState {
+  balance: number;
+  assets: number;
+  isRunning: boolean;
+  currentPrice: number;
+  priceHistory: OHLCCandle[];
+  chartType: 'LINE' | 'CANDLE';
+  simulationSpeed: number;
+  timeframe: '1s' | '1m' | '5m' | '1h';
+  chartTrades: ChartTrade[];
+  nodes: StrategyNode[];
+  connections: Connection[];
+  logs: TradeLog[];
+
+  toggleSimulation: () => void;
+  tick: () => void;
+  setChartType: (type: 'LINE' | 'CANDLE') => void;
+  setSimulationSpeed: (speed: number) => void;
+  setTimeframe: (tf: '1s' | '1m' | '5m' | '1h') => void;
+  addNode: (node: StrategyNode) => void;
+  updateNodePosition: (id: string, x: number, y: number) => void;
+  updateNodeData: (id: string, data: Partial<StrategyNode['data']>) => void;
+  connectNodes: (fromId: string, toId: string) => void;
+  removeConnection: (fromId: string, toId: string) => void;
+  removeNode: (id: string) => void;
+  deposit: (amount: number) => void;
+}
+
+const INITIAL_PRICE = 150;
+
+export const useSimulationStore = create<SimulationState>((set) => ({
+  balance: 10000,
+  assets: 0,
+  isRunning: false,
+  currentPrice: INITIAL_PRICE,
+  priceHistory: [{ open: INITIAL_PRICE, high: INITIAL_PRICE, low: INITIAL_PRICE, close: INITIAL_PRICE }],
+  chartType: 'LINE',
+  simulationSpeed: 20,
+  timeframe: '1s',
+  chartTrades: [],
+  nodes: [],
+  connections: [],
+  logs: [],
+
+  toggleSimulation: () =>
+    set((state) => ({ isRunning: !state.isRunning })),
+
+  setChartType: (type) => set({ chartType: type }),
+
+  setSimulationSpeed: (speed) => set({ simulationSpeed: speed }),
+
+  setTimeframe: (tf) => set({ timeframe: tf }),
+
+  tick: () =>
+    set((state) => {
+      const lastCandle = state.priceHistory[state.priceHistory.length - 1];
+      const open = lastCandle.close;
+
+      // Volatility scaled by timeframe
+      const volatilityMap: Record<string, number> = {
+        '1s': 0.02,
+        '1m': 0.02,
+        '5m': 0.04,
+        '1h': 0.08,
+      };
+      const vol = volatilityMap[state.timeframe] ?? 0.02;
+      const change = open * (Math.random() * vol - vol / 2);
+      const close = Math.max(1, open + change);
+
+      // Realistic wicks
+      const wickUp = open * (Math.random() * 0.005);
+      const wickDown = open * (Math.random() * 0.005);
+      const high = Math.max(open, close) + wickUp;
+      const low = Math.min(open, close) - wickDown;
+
+      const price = parseFloat(close.toFixed(2));
+
+      // The new candle will land at index = priceHistory.length (before cap)
+      // After appending + slicing to HISTORY_CAP, we need to know if history shifted
+      const rawNewLength = state.priceHistory.length + 1;
+      const willShift = rawNewLength > HISTORY_CAP;
+      const shiftAmount = willShift ? rawNewLength - HISTORY_CAP : 0;
+
+      // New candle index in the post-cap array
+      const newCandleIndex = Math.min(rawNewLength, HISTORY_CAP) - 1;
+
+      // Evaluate CONDITION -> ACTION connections
+      let newBalance = state.balance;
+      let newAssets = state.assets;
+      const firedConnections: string[] = [];
+      const newLogs: TradeLog[] = [];
+      const newChartTrades: ChartTrade[] = [];
+
+      for (const conn of state.connections) {
+        const condNode = state.nodes.find(
+          (n) => n.id === conn.fromId && n.type === 'CONDITION'
+        );
+        const actNode = state.nodes.find(
+          (n) => n.id === conn.toId && n.type === 'ACTION'
+        );
+        if (!condNode || !actNode) continue;
+
+        const { operator, targetPrice } = condNode.data;
+        const { side, amount } = actNode.data;
+        if (targetPrice == null || !operator || !side || !amount) continue;
+
+        const condMet = operator === 'lt' ? price < targetPrice : price > targetPrice;
+
+        if (condMet) {
+          const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+          const tradeId = `${Date.now()}-${Math.random()}`;
+          firedConnections.push(`${conn.fromId}:${conn.toId}`);
+
+          if (side === 'BUY') {
+            // amount = USD to spend
+            if (amount > newBalance) {
+              playSound('FAILED');
+              newLogs.push({
+                id: tradeId,
+                message: `FAILED: Insufficient funds (need $${amount}, have $${newBalance.toFixed(2)})`,
+                time: timeStr,
+                type: 'FAILED',
+              });
+              continue;
+            }
+            const units = amount / price;
+            newBalance = parseFloat((newBalance - amount).toFixed(2));
+            newAssets = parseFloat((newAssets + units).toFixed(8));
+            playSound('BUY');
+            newLogs.push({
+              id: tradeId,
+              message: `BUY $${amount} (${units.toFixed(4)} units) @ $${price.toFixed(2)}`,
+              time: timeStr,
+              type: 'BUY',
+            });
+          } else {
+            // SELL: amount = percentage (1–100) of held assets
+            const pct = Math.min(100, Math.max(1, amount));
+            const sellUnits = newAssets * (pct / 100);
+            if (sellUnits <= 0.0001) {
+              playSound('FAILED');
+              newLogs.push({
+                id: tradeId,
+                message: `FAILED: No assets to sell (hold ${newAssets.toFixed(4)} units)`,
+                time: timeStr,
+                type: 'FAILED',
+              });
+              continue;
+            }
+            const revenue = parseFloat((sellUnits * price).toFixed(2));
+            newAssets = parseFloat((newAssets - sellUnits).toFixed(8));
+            newBalance = parseFloat((newBalance + revenue).toFixed(2));
+            playSound('SELL');
+            newLogs.push({
+              id: tradeId,
+              message: `SELL ${pct}% ($${revenue}) @ $${price.toFixed(2)}`,
+              time: timeStr,
+              type: 'SELL',
+            });
+          }
+
+          newChartTrades.push({
+            id: tradeId,
+            type: side,
+            price,
+            historyIndex: newCandleIndex,
+          });
+        }
+      }
+
+      const remainingConnections = state.connections.filter(
+        (c) => !firedConnections.includes(`${c.fromId}:${c.toId}`)
+      );
+
+      const allLogs = [...newLogs, ...state.logs].slice(0, 50);
+
+      const newCandle: OHLCCandle = {
+        open: parseFloat(open.toFixed(2)),
+        high: parseFloat(high.toFixed(2)),
+        low: parseFloat(low.toFixed(2)),
+        close: price,
+      };
+
+      // Shift existing chartTrades indices when history scrolls
+      const updatedChartTrades = [
+        ...state.chartTrades
+          .map((t) => ({ ...t, historyIndex: t.historyIndex - shiftAmount }))
+          .filter((t) => t.historyIndex >= 0),
+        ...newChartTrades,
+      ];
+
+      return {
+        currentPrice: price,
+        balance: newBalance,
+        assets: newAssets,
+        priceHistory: [...state.priceHistory, newCandle].slice(-HISTORY_CAP),
+        connections: remainingConnections,
+        logs: allLogs,
+        chartTrades: updatedChartTrades,
+      };
+    }),
+
+  addNode: (node) =>
+    set((state) => ({ nodes: [...state.nodes, node] })),
+
+  updateNodePosition: (id, x, y) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.id === id ? { ...n, x, y } : n)),
+    })),
+
+  updateNodeData: (id, data) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === id ? { ...n, data: { ...n.data, ...data } } : n
+      ),
+    })),
+
+  connectNodes: (fromId, toId) =>
+    set((state) => {
+      const exists = state.connections.some(
+        (c) => c.fromId === fromId && c.toId === toId
+      );
+      if (exists) return {};
+      return { connections: [...state.connections, { fromId, toId }] };
+    }),
+
+  removeConnection: (fromId, toId) =>
+    set((state) => ({
+      connections: state.connections.filter(
+        (c) => !(c.fromId === fromId && c.toId === toId)
+      ),
+    })),
+
+  removeNode: (id) =>
+    set((state) => ({
+      nodes: state.nodes.filter((n) => n.id !== id),
+      connections: state.connections.filter(
+        (c) => c.fromId !== id && c.toId !== id
+      ),
+    })),
+
+  deposit: (amount) =>
+    set((state) => ({
+      balance: parseFloat((state.balance + amount).toFixed(2)),
+    })),
+}));

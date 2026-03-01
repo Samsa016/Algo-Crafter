@@ -1,0 +1,16 @@
+{
+  "file_name": "package.json",
+  "revision_id": "4838d2e9-9edd-4eae-9e27-521bf0f3e76f",
+  "metadata": {
+    "timestamp": "2026-03-01T09:08:51.668701",
+    "type": "cache_version",
+    "source": "external_edit",
+    "size": 564,
+    "is_reverted": false,
+    "git_branch_name": "",
+    "agent_name": "Cody",
+    "description": "External edit"
+  },
+  "content": "{\n  \"name\": \"algo-crafter\",\n  \"private\": true,\n  \"version\": \"0.1.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc && vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"framer-motion\": \"^12.34.3\",\n    \"react\": \"^18.2.0\",\n    \"react-dom\": \"^18.2.0\",\n    \"zustand\": \"^4.5.7\"\n  },\n  \"devDependencies\": {\n    \"@types/react\": \"^18.2.66\",\n    \"@types/react-dom\": \"^18.2.22\",\n    \"@vitejs/plugin-react\": \"^4.2.1\",\n    \"autoprefixer\": \"^10.4.27\",\n    \"postcss\": \"^8.5.6\",\n    \"tailwindcss\": \"^3.4.19\",\n    \"typescript\": \"^5.2.2\",\n    \"vite\": \"^5.2.0\"\n  }\n}\n",
+  "saved_at": "2026-03-01T10:36:27.612229"
+}
