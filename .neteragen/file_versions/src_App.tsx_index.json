@@ -2,6 +2,62 @@
   "file_name": "src/App.tsx",
   "revisions": [
     {
+      "revision_id": "96c6c625-e5c7-495c-8240-86c49016ab8e",
+      "metadata": {
+        "timestamp": "2026-03-02T10:01:56.416222",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 895,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T10:01:56.417998"
+    },
+    {
+      "revision_id": "9457a02e-3d0d-4c06-bbdd-d7388d85340d",
+      "metadata": {
+        "timestamp": "2026-03-02T10:01:46.504152",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 871,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T10:01:46.509147"
+    },
+    {
+      "revision_id": "3dd11418-84dc-4a11-a9eb-8db4e327ba29",
+      "metadata": {
+        "timestamp": "2026-03-02T09:25:35.183738",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 815,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T09:25:35.188738"
+    },
+    {
+      "revision_id": "51cf19bb-2c95-4b98-a602-1ddd0731f923",
+      "metadata": {
+        "timestamp": "2026-03-02T09:23:26.455460",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 792,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T09:23:26.457814"
+    },
+    {
       "revision_id": "876689f9-0e0b-4c80-82db-f53e134f12f3",
       "metadata": {
         "timestamp": "2026-03-01T11:47:11.066464",

@@ -1,0 +1,19 @@
+{
+  "file_name": "src/components/BacktestModal.tsx",
+  "revisions": [
+    {
+      "revision_id": "526ff232-2a9e-4c70-8986-33de04e2ffd5",
+      "metadata": {
+        "timestamp": "2026-03-02T09:58:37.473264",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 3349,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T09:58:37.474274"
+    }
+  ]
+}

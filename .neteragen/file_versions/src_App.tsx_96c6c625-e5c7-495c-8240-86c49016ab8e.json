@@ -1,0 +1,16 @@
+{
+  "file_name": "src/App.tsx",
+  "revision_id": "96c6c625-e5c7-495c-8240-86c49016ab8e",
+  "metadata": {
+    "timestamp": "2026-03-02T10:01:56.416222",
+    "type": "cache_version",
+    "source": "manual_save",
+    "size": 895,
+    "is_reverted": false,
+    "git_branch_name": "main",
+    "agent_name": "Cody",
+    "description": null
+  },
+  "content": "import { useEffect } from 'react';\nimport { useSimulationStore } from './store';\nimport Header from './components/Header';\nimport MainArea from './components/MainArea';\nimport Sidebar from './components/Sidebar';\nimport WelcomeModal from './components/WelcomeModal';\nimport BacktestModal from './components/BacktestModal';\n\nexport default function App() {\n  const { isRunning, tick, simulationSpeed } = useSimulationStore();\n\n  useEffect(() => {\n    if (!isRunning) return;\n    const interval = setInterval(tick, 1000 / simulationSpeed);\n    return () => clearInterval(interval);\n  }, [isRunning, tick, simulationSpeed]);\n\n  return (\n    <div className=\"min-h-screen bg-[#0d1117] flex flex-col text-white\">\n      <Header />\n      <WelcomeModal />\n      <BacktestModal />\n      <div className=\"flex flex-1 overflow-hidden\">\n        <MainArea />\n        <Sidebar />\n      </div>\n    </div>\n  );\n}\n",
+  "saved_at": "2026-03-02T10:01:56.416222"
+}

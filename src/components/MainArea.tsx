@@ -255,9 +255,10 @@ export default function MainArea() {
       }
     }
 
-    // ── Trade markers ────────────────────────────────────────────────────────
+ // ── Trade markers ────────────────────────────────────────────────────────
     const historyOffset = priceHistoryRef.current.length - vh.length;
-    const MARKER_SIZE   = 8;
+    const MARKER_RADIUS = 8; // Размер кружочка
+    
     for (const trade of chartTradesRef.current) {
       const { historyIndex, price: tradePrice, type } = trade;
       const vi = historyIndex - historyOffset;
@@ -268,28 +269,36 @@ export default function MainArea() {
       const isBuy = type === 'BUY';
       const color = isBuy ? '#00ff88' : '#ff4d4d';
 
+      // BUY снизу свечи, SELL сверху свечи
+      const cy = isBuy ? my + 16 : my - 16;
+
       ctx.save();
-      ctx.shadowColor  = color;
-      ctx.shadowBlur   = 18;
-      ctx.fillStyle    = color;
-      ctx.globalAlpha  = 0.95;
+      
+      // Неоновое свечение и сам кружок
+      ctx.shadowColor = color;
+      ctx.shadowBlur  = 10;
+      ctx.fillStyle   = color;
       ctx.beginPath();
-      if (isBuy) {
-        const tip = my + 4;
-        ctx.moveTo(mx, tip - MARKER_SIZE * 1.6);
-        ctx.lineTo(mx - MARKER_SIZE, tip + MARKER_SIZE * 0.4);
-        ctx.lineTo(mx + MARKER_SIZE, tip + MARKER_SIZE * 0.4);
-      } else {
-        const tip = my - 4;
-        ctx.moveTo(mx, tip + MARKER_SIZE * 1.6);
-        ctx.lineTo(mx - MARKER_SIZE, tip - MARKER_SIZE * 0.4);
-        ctx.lineTo(mx + MARKER_SIZE, tip - MARKER_SIZE * 0.4);
-      }
-      ctx.closePath();
+      ctx.arc(mx, cy, MARKER_RADIUS, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur  = 32;
-      ctx.globalAlpha = 0.35;
-      ctx.fill();
+      
+      // Отключаем тень для четкого текста
+      ctx.shadowBlur = 0;
+      
+      // Настройка шрифта
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Тонкая черная обводка текста (stroke)
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.strokeText(isBuy ? 'B' : 'S', mx, cy + 0.5);
+      
+      // Белый текст внутри
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(isBuy ? 'B' : 'S', mx, cy + 0.5);
+      
       ctx.restore();
     }
 

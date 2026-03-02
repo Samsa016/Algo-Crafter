@@ -85,6 +85,14 @@ export interface ChartTrade {
   historyIndex: number;
 }
 
+export interface BacktestResult {
+  startEquity: number;
+  endEquity: number;
+  netProfit: number;
+  totalTrades: number;
+  ticks: number;
+}
+
 const HISTORY_CAP = 100;
 
 interface SimulationState {
@@ -115,6 +123,10 @@ interface SimulationState {
   removeConnection: (fromId: string, toId: string) => void;
   removeNode: (id: string) => void;
   deposit: (amount: number) => void;
+  
+  backtestResult: BacktestResult | null;
+  runBacktest: (ticks: number) => void;
+  clearBacktest: () => void;
 }
 
 const INITIAL_PRICE = 65000;
@@ -127,6 +139,7 @@ const ASSET_BASE_PRICES: Record<string, number> = {
 
 export const useSimulationStore = create<SimulationState>((set) => ({
   balance: 10000,
+  totalDeposits: 10000,
   assets: { 'BTC/USD': 0, 'ETH/USD': 0, 'EUR/USD': 0 },
   asset: 'BTC/USD',
   isRunning: false,
@@ -139,6 +152,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   nodes: [],
   connections: [],
   logs: [],
+  backtestResult: null,
 
   toggleSimulation: () =>
     set((state) => ({ isRunning: !state.isRunning })),
@@ -182,12 +196,13 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       // Per-asset absolute volatility (not percentage-based)
       let change: number;
       if (state.asset === 'EUR/USD') {
-        const vol = (Math.random() - 0.5) * 0.001 * timeframeMultiplier;
-        change = vol;
+        change = (Math.random() - 0.5) * 0.001 * timeframeMultiplier;
+      } else if (state.asset === 'ETH/USD') {
+        // Эфир меняется на десятки долларов
+        change = (Math.random() - 0.5) * 40 * timeframeMultiplier;
       } else {
-        // BTC/USD and ETH/USD
-        const vol = (Math.random() - 0.5) * 20 * timeframeMultiplier;
-        change = vol;
+        // BTC/USD меняется на сотни долларов
+        change = (Math.random() - 0.5) * 300 * timeframeMultiplier;
       }
       const close = Math.max(0.0001, open + change);
 
@@ -325,6 +340,72 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         chartTrades: updatedChartTrades,
       };
     }),
+    
+    
+    clearBacktest: () => set({ backtestResult: null }),
+    
+      runBacktest: (ticks) => set((state) => {
+        let vBalance = state.balance;
+        let vAssets = state.assets[state.asset] || 0;
+        let vPrice = state.currentPrice;
+        let vConns = [...state.connections];
+        let tradesCount = 0;
+    
+        const tfMult = { '1s': 1, '1m': 2, '5m': 4, '1h': 8 }[state.timeframe] ?? 1;
+    
+        for (let i = 0; i < ticks; i++) {
+          let change = 0;
+          if (state.asset === 'EUR/USD') change = (Math.random() - 0.5) * 0.001 * tfMult;
+          else if (state.asset === 'ETH/USD') change = (Math.random() - 0.5) * 40 * tfMult;
+          else change = (Math.random() - 0.5) * 300 * tfMult;
+          vPrice = Math.max(0.0001, vPrice + change);
+    
+          const fired: string[] = [];
+          for (const conn of vConns) {
+            const condNode = state.nodes.find(n => n.id === conn.fromId);
+            const actNode = state.nodes.find(n => n.id === conn.toId);
+            if (!condNode || !actNode) continue;
+    
+            const { operator, targetPrice } = condNode.data;
+            const { side, amount } = actNode.data;
+            if (targetPrice == null || !amount) continue;
+    
+            const condMet = operator === 'lt' ? vPrice < targetPrice : vPrice > targetPrice;
+            if (condMet) {
+              fired.push(`${conn.fromId}:${conn.toId}`);
+              if (side === 'BUY') {
+                if (amount <= vBalance) {
+                  vBalance -= amount;
+                  vAssets += amount / vPrice;
+                  tradesCount++;
+                }
+              } else {
+                const pct = Math.min(100, Math.max(1, amount));
+                const sellUnits = vAssets * (pct / 100);
+                if (sellUnits > 0.000001) {
+                  vAssets -= sellUnits;
+                  vBalance += sellUnits * vPrice;
+                  tradesCount++;
+                }
+              }
+            }
+          }
+          vConns = vConns.filter(c => !fired.includes(`${c.fromId}:${c.toId}`));
+        }
+    
+        const startEq = state.balance + ((state.assets[state.asset] || 0) * state.currentPrice);
+        const endEq = vBalance + (vAssets * vPrice);
+    
+        return {
+          backtestResult: {
+            startEquity: parseFloat(startEq.toFixed(2)),
+            endEquity: parseFloat(endEq.toFixed(2)),
+            netProfit: parseFloat((endEq - startEq).toFixed(2)),
+            totalTrades: tradesCount,
+            ticks,
+          }
+        };
+      }),  
 
   addNode: (node) =>
     set((state) => ({ nodes: [...state.nodes, node] })),
@@ -368,5 +449,6 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   deposit: (amount) =>
     set((state) => ({
       balance: parseFloat((state.balance + amount).toFixed(2)),
+      totalDeposits: state.totalDeposits + amount,
     })),
 }));

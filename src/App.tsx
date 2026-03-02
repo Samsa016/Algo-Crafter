@@ -3,6 +3,8 @@ import { useSimulationStore } from './store';
 import Header from './components/Header';
 import MainArea from './components/MainArea';
 import Sidebar from './components/Sidebar';
+import WelcomeModal from './components/WelcomeModal';
+import BacktestModal from './components/BacktestModal';
 
 export default function App() {
   const { isRunning, tick, simulationSpeed } = useSimulationStore();
@@ -16,6 +18,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0d1117] flex flex-col text-white">
       <Header />
+      <WelcomeModal />
+      <BacktestModal />
       <div className="flex flex-1 overflow-hidden">
         <MainArea />
         <Sidebar />

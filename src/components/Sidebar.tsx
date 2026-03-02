@@ -144,12 +144,14 @@ function NodeCard({
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
+        
           {/* Side selector */}
           <select
             value={node.data.side ?? 'BUY'}
-            onChange={(e) =>
-              updateNodeData(node.id, { side: e.target.value as 'BUY' | 'SELL' })
-            }
+            onChange={(e) => {
+              const newSide = e.target.value as 'BUY' | 'SELL';
+              updateNodeData(node.id, { side: newSide, amount: newSide === 'SELL' ? 50 : 500 });
+            }}
             onPointerDown={(e) => e.stopPropagation()}
             className="w-full bg-white/5 border border-white/10 rounded text-white text-xs px-1 py-1 outline-none cursor-pointer"
           >
@@ -285,7 +287,7 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
-  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice } = useSimulationStore();
+  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, runBacktest } = useSimulationStore();
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
@@ -383,7 +385,7 @@ export default function Sidebar() {
       {/* ── Analytics Dashboard ── */}
       {(() => {
         const activeAssets = assets[asset] ?? 0;
-        const netProfit = parseFloat((balance + activeAssets * currentPrice - 10000).toFixed(2));
+        const netProfit = parseFloat((balance + activeAssets * currentPrice - totalDeposits).toFixed(2));
         const totalTrades = logs.filter((l) => l.type === 'BUY' || l.type === 'SELL').length;
         const isProfit = netProfit >= 0;
         const profitColor = isProfit ? '#00ff88' : '#ff4d4d';
@@ -426,6 +428,13 @@ export default function Sidebar() {
           </div>
         );
       })()}
+      
+      <button
+        onClick={() => runBacktest(10000)}
+        className="w-full py-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 hover:border-violet-500/60 transition-all font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(167,139,250,0.1)] shrink-0"
+      >
+        <span>⚡</span> Run Backtest (10000 ticks)
+      </button>
 
       {/* ── Strategy Log ── */}
       <div className="bg-[#161b22]/80 backdrop-blur-md border border-white/10 rounded-xl p-4 flex flex-col h-[28vh] min-h-[140px]">
