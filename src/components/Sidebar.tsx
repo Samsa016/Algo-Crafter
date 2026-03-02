@@ -285,7 +285,7 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
-  const { nodes, logs, addNode, connectNodes, balance, assets, currentPrice } = useSimulationStore();
+  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice } = useSimulationStore();
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
@@ -382,7 +382,8 @@ export default function Sidebar() {
 
       {/* ── Analytics Dashboard ── */}
       {(() => {
-        const netProfit = parseFloat((balance + assets * currentPrice - 10000).toFixed(2));
+        const activeAssets = assets[asset] ?? 0;
+        const netProfit = parseFloat((balance + activeAssets * currentPrice - 10000).toFixed(2));
         const totalTrades = logs.filter((l) => l.type === 'BUY' || l.type === 'SELL').length;
         const isProfit = netProfit >= 0;
         const profitColor = isProfit ? '#00ff88' : '#ff4d4d';

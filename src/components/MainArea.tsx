@@ -59,7 +59,7 @@ export default function MainArea() {
   // ─── React state (only what drives UI re-renders) ─────────────────────────
   const [activeTool, setActiveTool] = useState<Tool>('cursor');
   const [hLines, setHLines]         = useState<number[]>([]);
-  const [showSMA, setShowSMA]       = useState(false);
+  const [showSMA, _setShowSMA]      = useState(false);
 
   // Keep stable refs for use inside draw (avoids stale closures)
   const activeToolRef = useRef<Tool>('cursor');

@@ -89,7 +89,8 @@ const HISTORY_CAP = 100;
 
 interface SimulationState {
   balance: number;
-  assets: number;
+  assets: Record<string, number>;
+  asset: string;
   isRunning: boolean;
   currentPrice: number;
   priceHistory: OHLCCandle[];
@@ -106,6 +107,7 @@ interface SimulationState {
   setChartType: (type: 'LINE' | 'CANDLE') => void;
   setSimulationSpeed: (speed: number) => void;
   setTimeframe: (tf: '1s' | '1m' | '5m' | '1h') => void;
+  setAsset: (newAsset: string) => void;
   addNode: (node: StrategyNode) => void;
   updateNodePosition: (id: string, x: number, y: number) => void;
   updateNodeData: (id: string, data: Partial<StrategyNode['data']>) => void;
@@ -115,11 +117,18 @@ interface SimulationState {
   deposit: (amount: number) => void;
 }
 
-const INITIAL_PRICE = 150;
+const INITIAL_PRICE = 65000;
+
+const ASSET_BASE_PRICES: Record<string, number> = {
+  'BTC/USD': 65000,
+  'ETH/USD': 3500,
+  'EUR/USD': 1.12,
+};
 
 export const useSimulationStore = create<SimulationState>((set) => ({
   balance: 10000,
-  assets: 0,
+  assets: { 'BTC/USD': 0, 'ETH/USD': 0, 'EUR/USD': 0 },
+  asset: 'BTC/USD',
   isRunning: false,
   currentPrice: INITIAL_PRICE,
   priceHistory: [{ open: INITIAL_PRICE, high: INITIAL_PRICE, low: INITIAL_PRICE, close: INITIAL_PRICE }],
@@ -140,21 +149,47 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
   setTimeframe: (tf) => set({ timeframe: tf }),
 
+  setAsset: (newAsset) =>
+    set(() => {
+      const newBasePrice = ASSET_BASE_PRICES[newAsset] ?? 100;
+      const seedCandle: OHLCCandle = {
+        open: newBasePrice,
+        high: newBasePrice,
+        low: newBasePrice,
+        close: newBasePrice,
+      };
+      return {
+        asset: newAsset,
+        currentPrice: newBasePrice,
+        priceHistory: [seedCandle],
+        logs: [],
+        chartTrades: [],
+        connections: [],
+      };
+    }),
+
   tick: () =>
     set((state) => {
       const lastCandle = state.priceHistory[state.priceHistory.length - 1];
       const open = lastCandle.close;
 
       // Volatility scaled by timeframe
-      const volatilityMap: Record<string, number> = {
-        '1s': 0.02,
-        '1m': 0.02,
-        '5m': 0.04,
-        '1h': 0.08,
+      const timeframeMultiplierMap: Record<string, number> = {
+        '1s': 1, '1m': 2, '5m': 4, '1h': 8,
       };
-      const vol = volatilityMap[state.timeframe] ?? 0.02;
-      const change = open * (Math.random() * vol - vol / 2);
-      const close = Math.max(1, open + change);
+      const timeframeMultiplier = timeframeMultiplierMap[state.timeframe] ?? 1;
+
+      // Per-asset absolute volatility (not percentage-based)
+      let change: number;
+      if (state.asset === 'EUR/USD') {
+        const vol = (Math.random() - 0.5) * 0.001 * timeframeMultiplier;
+        change = vol;
+      } else {
+        // BTC/USD and ETH/USD
+        const vol = (Math.random() - 0.5) * 20 * timeframeMultiplier;
+        change = vol;
+      }
+      const close = Math.max(0.0001, open + change);
 
       // Realistic wicks
       const wickUp = open * (Math.random() * 0.005);
@@ -175,7 +210,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
       // Evaluate CONDITION -> ACTION connections
       let newBalance = state.balance;
-      let newAssets = state.assets;
+      const newAssets: Record<string, number> = { ...state.assets };
       const firedConnections: string[] = [];
       const newLogs: TradeLog[] = [];
       const newChartTrades: ChartTrade[] = [];
@@ -212,37 +247,39 @@ export const useSimulationStore = create<SimulationState>((set) => ({
               });
               continue;
             }
+            const currentAssetUnits = newAssets[state.asset] || 0;
             const units = amount / price;
             newBalance = parseFloat((newBalance - amount).toFixed(2));
-            newAssets = parseFloat((newAssets + units).toFixed(8));
+            newAssets[state.asset] = parseFloat((currentAssetUnits + units).toFixed(8));
             playSound('BUY');
             newLogs.push({
               id: tradeId,
-              message: `BUY $${amount} (${units.toFixed(4)} units) @ $${price.toFixed(2)}`,
+              message: `BUY $${amount} (${units.toFixed(4)} ${state.asset}) @ $${price.toFixed(2)}`,
               time: timeStr,
               type: 'BUY',
             });
           } else {
-            // SELL: amount = percentage (1–100) of held assets
+            // SELL: amount = percentage (1–100) of held assets for this asset
+            const currentAssetUnits = newAssets[state.asset] || 0;
             const pct = Math.min(100, Math.max(1, amount));
-            const sellUnits = newAssets * (pct / 100);
-            if (sellUnits <= 0.0001) {
+            const sellUnits = currentAssetUnits * (pct / 100);
+            if (sellUnits <= 0.000001) {
               playSound('FAILED');
               newLogs.push({
                 id: tradeId,
-                message: `FAILED: No assets to sell (hold ${newAssets.toFixed(4)} units)`,
+                message: `FAILED: No ${state.asset} to sell (hold ${currentAssetUnits.toFixed(6)})`,
                 time: timeStr,
                 type: 'FAILED',
               });
               continue;
             }
             const revenue = parseFloat((sellUnits * price).toFixed(2));
-            newAssets = parseFloat((newAssets - sellUnits).toFixed(8));
+            newAssets[state.asset] = parseFloat((currentAssetUnits - sellUnits).toFixed(8));
             newBalance = parseFloat((newBalance + revenue).toFixed(2));
             playSound('SELL');
             newLogs.push({
               id: tradeId,
-              message: `SELL ${pct}% ($${revenue}) @ $${price.toFixed(2)}`,
+              message: `SELL ${pct}% (${sellUnits.toFixed(6)} ${state.asset}, $${revenue}) @ $${price.toFixed(2)}`,
               time: timeStr,
               type: 'SELL',
             });
