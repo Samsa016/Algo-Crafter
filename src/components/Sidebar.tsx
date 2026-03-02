@@ -118,8 +118,8 @@ function NodeCard({
               <option value="gt" className="bg-[#161b22] text-white">Price &gt;</option>
             </select>
             <input
-              type="number"
-              value={node.data.targetPrice ?? 150}
+                type="number"
+                value={Number.isNaN(node.data.targetPrice) ? '' : (node.data.targetPrice ?? 150)}
               onChange={(e) =>
                 updateNodeData(node.id, { targetPrice: parseFloat(e.target.value) })
               }
@@ -164,8 +164,8 @@ function NodeCard({
             <div className="flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <span className="text-[10px] text-white/30 font-mono shrink-0">$</span>
               <input
-                type="number"
-                value={node.data.amount ?? 500}
+                  type="number"
+                  value={Number.isNaN(node.data.amount) ? '' : (node.data.amount ?? 500)}
                 onChange={(e) =>
                   updateNodeData(node.id, { amount: parseFloat(e.target.value) })
                 }

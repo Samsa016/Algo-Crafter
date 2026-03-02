@@ -2,6 +2,48 @@
   "file_name": "src/store.ts",
   "revisions": [
     {
+      "revision_id": "504ece83-d2d2-4405-9e6d-0015707ea293",
+      "metadata": {
+        "timestamp": "2026-03-02T13:45:47.905329",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 16662,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T13:45:47.911041"
+    },
+    {
+      "revision_id": "a007c457-16f9-4ff4-afd8-4fd045ec771d",
+      "metadata": {
+        "timestamp": "2026-03-02T13:44:06.019734",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 16548,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T13:44:06.024447"
+    },
+    {
+      "revision_id": "48a1dbcb-16f0-49a5-b430-8eeed5f1aed2",
+      "metadata": {
+        "timestamp": "2026-03-02T12:17:05.919269",
+        "type": "cache_version",
+        "source": "manual_save",
+        "size": 16192,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-02T12:17:05.924674"
+    },
+    {
       "revision_id": "62e6f236-8be7-4a96-b60c-ee097b26c6a3",
       "metadata": {
         "timestamp": "2026-03-02T09:57:56.644484",

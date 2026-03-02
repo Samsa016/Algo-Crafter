@@ -8,7 +8,6 @@ function playSound(type: 'BUY' | 'SELL' | 'FAILED') {
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
   if (type === 'FAILED') {
-    // Low square-wave buzz
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'square';
@@ -22,19 +21,16 @@ function playSound(type: 'BUY' | 'SELL' | 'FAILED') {
     return;
   }
 
-  // ── Cash-register "cha-ching" ──────────────────────────────────────────────
-  // Two metallic bell tones fired in quick succession
   const now = audioCtx.currentTime;
   const tones = type === 'BUY'
-    ? [{ freq: 2637, delay: 0 }, { freq: 3136, delay: 0.07 }]   // E7 → G7 (bright register)
-    : [{ freq: 2093, delay: 0 }, { freq: 2637, delay: 0.07 }];  // C7 → E7 (slightly lower sell)
+    ? [{ freq: 2637, delay: 0 }, { freq: 3136, delay: 0.07 }]   
+    : [{ freq: 2093, delay: 0 }, { freq: 2637, delay: 0.07 }];  
 
   for (const { freq, delay } of tones) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, now + delay);
-    // Fast metallic decay — coin-bell character
     gain.gain.setValueAtTime(0, now + delay);
     gain.gain.linearRampToValueAtTime(0.18, now + delay + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.22);
@@ -93,10 +89,18 @@ export interface BacktestResult {
   ticks: number;
 }
 
+// ─── Новые интерфейсы для учета позиций ───
+export interface ActivePosition {
+  buyPrice: number;
+  triggerPrice: number;
+  operator: 'lt' | 'gt';
+}
+
 const HISTORY_CAP = 100;
 
 interface SimulationState {
   balance: number;
+  totalDeposits: number;
   assets: Record<string, number>;
   asset: string;
   isRunning: boolean;
@@ -109,6 +113,9 @@ interface SimulationState {
   nodes: StrategyNode[];
   connections: Connection[];
   logs: TradeLog[];
+  
+  activePositions: Record<string, ActivePosition>;
+  recoveryModes: Record<string, ActivePosition>;
 
   toggleSimulation: () => void;
   tick: () => void;
@@ -152,6 +159,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   nodes: [],
   connections: [],
   logs: [],
+  activePositions: {},
+  recoveryModes: {},
   backtestResult: null,
 
   toggleSimulation: () =>
@@ -179,233 +188,255 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         logs: [],
         chartTrades: [],
         connections: [],
+        activePositions: {},
+        recoveryModes: {},
       };
     }),
 
   tick: () =>
-    set((state) => {
-      const lastCandle = state.priceHistory[state.priceHistory.length - 1];
-      const open = lastCandle.close;
-
-      // Volatility scaled by timeframe
-      const timeframeMultiplierMap: Record<string, number> = {
-        '1s': 1, '1m': 2, '5m': 4, '1h': 8,
-      };
-      const timeframeMultiplier = timeframeMultiplierMap[state.timeframe] ?? 1;
-
-      // Per-asset absolute volatility (not percentage-based)
-      let change: number;
-      if (state.asset === 'EUR/USD') {
-        change = (Math.random() - 0.5) * 0.001 * timeframeMultiplier;
-      } else if (state.asset === 'ETH/USD') {
-        // Эфир меняется на десятки долларов
-        change = (Math.random() - 0.5) * 40 * timeframeMultiplier;
-      } else {
-        // BTC/USD меняется на сотни долларов
-        change = (Math.random() - 0.5) * 300 * timeframeMultiplier;
-      }
-      const close = Math.max(0.0001, open + change);
-
-      // Realistic wicks
-      const wickUp = open * (Math.random() * 0.005);
-      const wickDown = open * (Math.random() * 0.005);
-      const high = Math.max(open, close) + wickUp;
-      const low = Math.min(open, close) - wickDown;
-
-      const price = parseFloat(close.toFixed(2));
-
-      // The new candle will land at index = priceHistory.length (before cap)
-      // After appending + slicing to HISTORY_CAP, we need to know if history shifted
-      const rawNewLength = state.priceHistory.length + 1;
-      const willShift = rawNewLength > HISTORY_CAP;
-      const shiftAmount = willShift ? rawNewLength - HISTORY_CAP : 0;
-
-      // New candle index in the post-cap array
-      const newCandleIndex = Math.min(rawNewLength, HISTORY_CAP) - 1;
-
-      // Evaluate CONDITION -> ACTION connections
-      let newBalance = state.balance;
-      const newAssets: Record<string, number> = { ...state.assets };
-      const firedConnections: string[] = [];
-      const newLogs: TradeLog[] = [];
-      const newChartTrades: ChartTrade[] = [];
-
-      for (const conn of state.connections) {
-        const condNode = state.nodes.find(
-          (n) => n.id === conn.fromId && n.type === 'CONDITION'
-        );
-        const actNode = state.nodes.find(
-          (n) => n.id === conn.toId && n.type === 'ACTION'
-        );
-        if (!condNode || !actNode) continue;
-
-        const { operator, targetPrice } = condNode.data;
-        const { side, amount } = actNode.data;
-        if (targetPrice == null || !operator || !side || !amount) continue;
-
-        const condMet = operator === 'lt' ? price < targetPrice : price > targetPrice;
-
-        if (condMet) {
-          const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
-          const tradeId = `${Date.now()}-${Math.random()}`;
-          firedConnections.push(`${conn.fromId}:${conn.toId}`);
-
-          if (side === 'BUY') {
-            // amount = USD to spend
-            if (amount > newBalance) {
-              playSound('FAILED');
-              newLogs.push({
-                id: tradeId,
-                message: `FAILED: Insufficient funds (need $${amount}, have $${newBalance.toFixed(2)})`,
-                time: timeStr,
-                type: 'FAILED',
-              });
-              continue;
-            }
-            const currentAssetUnits = newAssets[state.asset] || 0;
-            const units = amount / price;
-            newBalance = parseFloat((newBalance - amount).toFixed(2));
-            newAssets[state.asset] = parseFloat((currentAssetUnits + units).toFixed(8));
-            playSound('BUY');
-            newLogs.push({
-              id: tradeId,
-              message: `BUY $${amount} (${units.toFixed(4)} ${state.asset}) @ $${price.toFixed(2)}`,
-              time: timeStr,
-              type: 'BUY',
-            });
+        set((state) => {
+          const lastCandle = state.priceHistory[state.priceHistory.length - 1];
+          const open = lastCandle.close;
+    
+          const timeframeMultiplierMap: Record<string, number> = {
+            '1s': 1, '1m': 2, '5m': 4, '1h': 8,
+          };
+          const timeframeMultiplier = timeframeMultiplierMap[state.timeframe] ?? 1;
+    
+          let change: number;
+          if (state.asset === 'EUR/USD') {
+            change = (Math.random() - 0.5) * 0.001 * timeframeMultiplier;
+          } else if (state.asset === 'ETH/USD') {
+            change = (Math.random() - 0.5) * 40 * timeframeMultiplier;
           } else {
-            // SELL: amount = percentage (1–100) of held assets for this asset
-            const currentAssetUnits = newAssets[state.asset] || 0;
-            const pct = Math.min(100, Math.max(1, amount));
-            const sellUnits = currentAssetUnits * (pct / 100);
-            if (sellUnits <= 0.000001) {
-              playSound('FAILED');
-              newLogs.push({
-                id: tradeId,
-                message: `FAILED: No ${state.asset} to sell (hold ${currentAssetUnits.toFixed(6)})`,
-                time: timeStr,
-                type: 'FAILED',
-              });
-              continue;
-            }
-            const revenue = parseFloat((sellUnits * price).toFixed(2));
-            newAssets[state.asset] = parseFloat((currentAssetUnits - sellUnits).toFixed(8));
-            newBalance = parseFloat((newBalance + revenue).toFixed(2));
-            playSound('SELL');
-            newLogs.push({
-              id: tradeId,
-              message: `SELL ${pct}% (${sellUnits.toFixed(6)} ${state.asset}, $${revenue}) @ $${price.toFixed(2)}`,
-              time: timeStr,
-              type: 'SELL',
-            });
+            change = (Math.random() - 0.5) * 300 * timeframeMultiplier;
           }
-
-          newChartTrades.push({
-            id: tradeId,
-            type: side,
-            price,
-            historyIndex: newCandleIndex,
-          });
-        }
-      }
-
-      const remainingConnections = state.connections.filter(
-        (c) => !firedConnections.includes(`${c.fromId}:${c.toId}`)
-      );
-
-      const allLogs = [...newLogs, ...state.logs].slice(0, 50);
-
-      const newCandle: OHLCCandle = {
-        open: parseFloat(open.toFixed(2)),
-        high: parseFloat(high.toFixed(2)),
-        low: parseFloat(low.toFixed(2)),
-        close: price,
-      };
-
-      // Shift existing chartTrades indices when history scrolls
-      const updatedChartTrades = [
-        ...state.chartTrades
-          .map((t) => ({ ...t, historyIndex: t.historyIndex - shiftAmount }))
-          .filter((t) => t.historyIndex >= 0),
-        ...newChartTrades,
-      ];
-
-      return {
-        currentPrice: price,
-        balance: newBalance,
-        assets: newAssets,
-        priceHistory: [...state.priceHistory, newCandle].slice(-HISTORY_CAP),
-        connections: remainingConnections,
-        logs: allLogs,
-        chartTrades: updatedChartTrades,
-      };
-    }),
+          const close = Math.max(0.0001, open + change);
     
+          const wickUp = open * (Math.random() * 0.005);
+          const wickDown = open * (Math.random() * 0.005);
+          const high = Math.max(open, close) + wickUp;
+          const low = Math.min(open, close) - wickDown;
     
-    clearBacktest: () => set({ backtestResult: null }),
+          const price = parseFloat(close.toFixed(2));
     
-      runBacktest: (ticks) => set((state) => {
-        let vBalance = state.balance;
-        let vAssets = state.assets[state.asset] || 0;
-        let vPrice = state.currentPrice;
-        let vConns = [...state.connections];
-        let tradesCount = 0;
+          const rawNewLength = state.priceHistory.length + 1;
+          const willShift = rawNewLength > HISTORY_CAP;
+          const shiftAmount = willShift ? rawNewLength - HISTORY_CAP : 0;
+          const newCandleIndex = Math.min(rawNewLength, HISTORY_CAP) - 1;
     
-        const tfMult = { '1s': 1, '1m': 2, '5m': 4, '1h': 8 }[state.timeframe] ?? 1;
+          let newBalance = state.balance;
+          const newAssets: Record<string, number> = { ...state.assets };
+          const newLogs: TradeLog[] = [];
+          const newChartTrades: ChartTrade[] = [];
     
-        for (let i = 0; i < ticks; i++) {
-          let change = 0;
-          if (state.asset === 'EUR/USD') change = (Math.random() - 0.5) * 0.001 * tfMult;
-          else if (state.asset === 'ETH/USD') change = (Math.random() - 0.5) * 40 * tfMult;
-          else change = (Math.random() - 0.5) * 300 * tfMult;
-          vPrice = Math.max(0.0001, vPrice + change);
+          const newActive = { ...state.activePositions };
+          const newRecovery = { ...state.recoveryModes };
     
-          const fired: string[] = [];
-          for (const conn of vConns) {
-            const condNode = state.nodes.find(n => n.id === conn.fromId);
-            const actNode = state.nodes.find(n => n.id === conn.toId);
+          for (const nodeId in newRecovery) {
+            const pos = newRecovery[nodeId];
+            const recovered = pos.operator === 'lt' ? price > pos.triggerPrice : price < pos.triggerPrice;
+            if (recovered) {
+              delete newRecovery[nodeId];
+            }
+          }
+    
+          for (const conn of state.connections) {
+            const condNode = state.nodes.find((n) => n.id === conn.fromId && n.type === 'CONDITION');
+            const actNode = state.nodes.find((n) => n.id === conn.toId && n.type === 'ACTION');
             if (!condNode || !actNode) continue;
     
             const { operator, targetPrice } = condNode.data;
             const { side, amount } = actNode.data;
-            if (targetPrice == null || !amount) continue;
+            if (targetPrice == null || !operator || !side || !amount) continue;
     
-            const condMet = operator === 'lt' ? vPrice < targetPrice : vPrice > targetPrice;
+            const condMet = operator === 'lt' ? price < targetPrice : price > targetPrice;
+    
             if (condMet) {
-              fired.push(`${conn.fromId}:${conn.toId}`);
+              // 🛑 ФИКС: Если нода (BUY или SELL) в перезарядке - пропускаем
+              if (newRecovery[conn.toId]) continue;
+    
+              const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+              const tradeId = `${Date.now()}-${Math.random()}`;
+    
               if (side === 'BUY') {
-                if (amount <= vBalance) {
-                  vBalance -= amount;
-                  vAssets += amount / vPrice;
-                  tradesCount++;
+                if (newActive[conn.toId]) continue;
+    
+                if (amount > newBalance) {
+                  playSound('FAILED');
+                  newLogs.push({ id: tradeId, message: `FAILED: Insufficient funds (need $${amount})`, time: timeStr, type: 'FAILED' });
+                  newRecovery[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
+                  continue;
                 }
+    
+                const currentAssetUnits = newAssets[state.asset] || 0;
+                const units = amount / price;
+                newBalance = parseFloat((newBalance - amount).toFixed(2));
+                newAssets[state.asset] = parseFloat((currentAssetUnits + units).toFixed(8));
+                
+                newActive[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
+    
+                playSound('BUY');
+                newLogs.push({ id: tradeId, message: `BUY $${amount} (${units.toFixed(4)} ${state.asset}) @ $${price.toFixed(2)}`, time: timeStr, type: 'BUY' });
+                newChartTrades.push({ id: tradeId, type: side, price, historyIndex: newCandleIndex });
+    
               } else {
+                const currentAssetUnits = newAssets[state.asset] || 0;
                 const pct = Math.min(100, Math.max(1, amount));
-                const sellUnits = vAssets * (pct / 100);
-                if (sellUnits > 0.000001) {
-                  vAssets -= sellUnits;
-                  vBalance += sellUnits * vPrice;
-                  tradesCount++;
+                const sellUnits = currentAssetUnits * (pct / 100);
+                
+                if (sellUnits <= 0.000001) {
+                  // 🛑 ФИКС: Если продавать нечего, блокируем ноду, чтобы не спамила в холостую!
+                  newRecovery[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
+                  continue; 
+                }
+    
+                const revenue = parseFloat((sellUnits * price).toFixed(2));
+                newAssets[state.asset] = parseFloat((currentAssetUnits - sellUnits).toFixed(8));
+                newBalance = parseFloat((newBalance + revenue).toFixed(2));
+                
+                playSound('SELL');
+                newLogs.push({ id: tradeId, message: `SELL ${pct}% (${sellUnits.toFixed(6)} ${state.asset}, $${revenue}) @ $${price.toFixed(2)}`, time: timeStr, type: 'SELL' });
+                newChartTrades.push({ id: tradeId, type: side, price, historyIndex: newCandleIndex });
+    
+                // 🛑 ФИКС: БЛОКИРУЕМ НОДУ ПРОДАЖИ до отката цены
+                newRecovery[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
+    
+                for (const activeId in newActive) {
+                  const pos = newActive[activeId];
+                  if (price > pos.buyPrice) {
+                    delete newActive[activeId];
+                  } else {
+                    newRecovery[activeId] = pos;
+                    delete newActive[activeId];
+                  }
                 }
               }
             }
           }
-          vConns = vConns.filter(c => !fired.includes(`${c.fromId}:${c.toId}`));
+    
+          const allLogs = [...newLogs, ...state.logs].slice(0, 50);
+    
+          const newCandle: OHLCCandle = {
+            open: parseFloat(open.toFixed(2)),
+            high: parseFloat(high.toFixed(2)),
+            low: parseFloat(low.toFixed(2)),
+            close: price,
+          };
+    
+          const updatedChartTrades = [
+            ...state.chartTrades
+              .map((t) => ({ ...t, historyIndex: t.historyIndex - shiftAmount }))
+              .filter((t) => t.historyIndex >= 0),
+            ...newChartTrades,
+          ];
+    
+          return {
+            currentPrice: price,
+            balance: newBalance,
+            assets: newAssets,
+            priceHistory: [...state.priceHistory, newCandle].slice(-HISTORY_CAP),
+            logs: allLogs,
+            chartTrades: updatedChartTrades,
+            activePositions: newActive,
+            recoveryModes: newRecovery,
+            connections: state.connections,
+          };
+        }),
+    
+  clearBacktest: () => set({ backtestResult: null }),
+  
+  runBacktest: (ticks) => set((state) => {
+      let vBalance = 10000;
+      let vAssets = 0;
+      let vPrice = state.currentPrice;
+      
+      // Виртуальные ноды тоже начинают чистыми
+      let vActive: Record<string, ActivePosition> = {};
+      let vRecovery: Record<string, ActivePosition> = {};
+      let tradesCount = 0;
+  
+      const tfMult = { '1s': 1, '1m': 2, '5m': 4, '1h': 8 }[state.timeframe] ?? 1;
+  
+      for (let i = 0; i < ticks; i++) {
+        let change = 0;
+        if (state.asset === 'EUR/USD') change = (Math.random() - 0.5) * 0.001 * tfMult;
+        else if (state.asset === 'ETH/USD') change = (Math.random() - 0.5) * 40 * tfMult;
+        else change = (Math.random() - 0.5) * 300 * tfMult;
+        vPrice = Math.max(0.0001, vPrice + change);
+  
+        for (const nodeId in vRecovery) {
+          const pos = vRecovery[nodeId];
+          const recovered = pos.operator === 'lt' ? vPrice > pos.triggerPrice : vPrice < pos.triggerPrice;
+          if (recovered) delete vRecovery[nodeId];
         }
-    
-        const startEq = state.balance + ((state.assets[state.asset] || 0) * state.currentPrice);
-        const endEq = vBalance + (vAssets * vPrice);
-    
-        return {
-          backtestResult: {
-            startEquity: parseFloat(startEq.toFixed(2)),
-            endEquity: parseFloat(endEq.toFixed(2)),
-            netProfit: parseFloat((endEq - startEq).toFixed(2)),
-            totalTrades: tradesCount,
-            ticks,
+  
+        for (const conn of state.connections) {
+          const condNode = state.nodes.find(n => n.id === conn.fromId);
+          const actNode = state.nodes.find(n => n.id === conn.toId);
+          if (!condNode || !actNode) continue;
+  
+          const { operator, targetPrice } = condNode.data;
+          const { side, amount } = actNode.data;
+          if (targetPrice == null || !amount) continue;
+  
+          const condMet = operator === 'lt' ? vPrice < targetPrice : vPrice > targetPrice;
+          
+          if (condMet) {
+            if (vRecovery[conn.toId]) continue; // Защита от спама
+  
+            if (side === 'BUY') {
+              if (vActive[conn.toId]) continue;
+  
+              if (amount <= vBalance) {
+                vBalance -= amount;
+                vAssets += amount / vPrice;
+                tradesCount++;
+                vActive[conn.toId] = { buyPrice: vPrice, triggerPrice: targetPrice, operator };
+              } else {
+                vRecovery[conn.toId] = { buyPrice: vPrice, triggerPrice: targetPrice, operator };
+              }
+            } else {
+              const pct = Math.min(100, Math.max(1, amount));
+              const sellUnits = vAssets * (pct / 100);
+              if (sellUnits > 0.000001) {
+                vAssets -= sellUnits;
+                vBalance += sellUnits * vPrice;
+                tradesCount++;
+  
+                vRecovery[conn.toId] = { buyPrice: vPrice, triggerPrice: targetPrice, operator };
+  
+                for (const activeId in vActive) {
+                  const pos = vActive[activeId];
+                  if (vPrice > pos.buyPrice) {
+                    delete vActive[activeId];
+                  } else {
+                    vRecovery[activeId] = pos;
+                    delete vActive[activeId];
+                  }
+                }
+              } else {
+                vRecovery[conn.toId] = { buyPrice: vPrice, triggerPrice: targetPrice, operator };
+              }
+            }
           }
-        };
-      }),  
+        }
+      }
+  
+      // Считаем от жестких 10000
+      const startEq = 10000;
+      const endEq = vBalance + (vAssets * vPrice);
+  
+      return {
+        backtestResult: {
+          startEquity: parseFloat(startEq.toFixed(2)),
+          endEquity: parseFloat(endEq.toFixed(2)),
+          netProfit: parseFloat((endEq - startEq).toFixed(2)),
+          totalTrades: tradesCount,
+          ticks,
+        }
+      };
+    }),
 
   addNode: (node) =>
     set((state) => ({ nodes: [...state.nodes, node] })),
