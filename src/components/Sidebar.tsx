@@ -430,10 +430,10 @@ export default function Sidebar() {
       })()}
       
       <button
-        onClick={() => runBacktest(10000)}
+        onClick={() => runBacktest(1000)}
         className="w-full py-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 hover:border-violet-500/60 transition-all font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(167,139,250,0.1)] shrink-0"
       >
-        <span>⚡</span> Run Backtest (10000 ticks)
+        <span>⚡</span> Run Backtest (1000 ticks)
       </button>
 
       {/* ── Strategy Log ── */}

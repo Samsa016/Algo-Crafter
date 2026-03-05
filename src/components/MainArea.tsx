@@ -37,10 +37,22 @@ export default function MainArea() {
   const firstClose = visibleHistory[0]?.close ?? currentPrice;
   const isUp       = lastClose >= firstClose;
   const accentColor = isUp ? '#00ff88' : '#ff4d4d';
+  
+const [activeTool, setActiveTool] = useState<Tool>('cursor');
+  const [hLines, setHLines] = useState<number[]>([]);
+  const [showSMA, setShowSMA] = useState(false);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const activeToolRef = useRef<Tool>('cursor');
+  const hLinesRef = useRef<number[]>([]);
+  const showSMARef = useRef(false);
+
+  useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
+  useEffect(() => { hLinesRef.current = hLines; }, [hLines]);
+  useEffect(() => { showSMARef.current = showSMA; }, [showSMA]);
 
   // Particles
   const particlesRef          = useRef<Particle[]>([]);
@@ -56,18 +68,7 @@ export default function MainArea() {
   // Inverse of toY: canvas-y → price
   const fromYRef = useRef<((canvasY: number) => number) | null>(null);
 
-  // ─── React state (only what drives UI re-renders) ─────────────────────────
-  const [activeTool, setActiveTool] = useState<Tool>('cursor');
-  const [hLines, setHLines]         = useState<number[]>([]);
-  const [showSMA, _setShowSMA]      = useState(false);
 
-  // Keep stable refs for use inside draw (avoids stale closures)
-  const activeToolRef = useRef<Tool>('cursor');
-  const hLinesRef     = useRef<number[]>([]);
-  const showSMARef    = useRef(false);
-  useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
-  useEffect(() => { hLinesRef.current = hLines; }, [hLines]);
-  useEffect(() => { showSMARef.current = showSMA; }, [showSMA]);
 
   // Stable snapshot refs for draw (updated each render)
   const visibleHistoryRef = useRef(visibleHistory);
@@ -302,6 +303,35 @@ export default function MainArea() {
       ctx.restore();
     }
 
+// ── SMA 20 Overlay ──
+    if (showSMARef.current && priceHistoryRef.current.length > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.strokeStyle = '#ff9900';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#ff9900';
+      ctx.shadowBlur = 8;
+      let firstSMA = true;
+
+      for (let vi = 0; vi < vh.length; vi++) {
+        const globalIdx = historyOffset + vi;
+        if (globalIdx < 19) continue; 
+        let sum = 0;
+        for (let j = 0; j < 20; j++) sum += priceHistoryRef.current[globalIdx - j].close;
+        const sma = sum / 20;
+
+        const x = toX(vi);
+        const y = toY(sma);
+        if (firstSMA) {
+          ctx.moveTo(x, y);
+          firstSMA = false;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
     // ── H-Lines ──────────────────────────────────────────────────────────────
     ctx.save();
     ctx.strokeStyle = '#a78bfa';
@@ -624,7 +654,20 @@ export default function MainArea() {
                 </button>
               );
             })}
-
+            
+            <div className="w-full h-px bg-white/10 my-0.5" />
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowSMA(!showSMA); }}
+              title="Toggle SMA 20"
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all text-xs font-bold font-mono ${
+                showSMA
+                  ? 'bg-[#ff9900]/20 text-[#ff9900] border border-[#ff9900]/40'
+                  : 'bg-transparent text-white/40 border border-transparent hover:text-white/80 hover:bg-white/5'
+              }`}
+            >
+              S
+            </button>
+            
             {/* Divider + clear H-lines button (only when lines exist) */}
             {hLines.length > 0 && (
               <>
