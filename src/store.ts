@@ -54,6 +54,8 @@ export interface StrategyNode {
   type: 'CONDITION' | 'ACTION';
   x: number;
   y: number;
+  exp?: number;    // XP earned from successful trades
+  level?: number;  // Derived from exp: every 3 exp = +1 level (min 1)
   data: {
     label: string;
     targetPrice?: number;
@@ -144,6 +146,12 @@ interface SimulationState {
   backtestResult: BacktestResult | null;
   runBacktest: (ticks: number) => void;
   clearBacktest: () => void;
+
+  triggerShock: (type: 'MOON' | 'CRASH') => void;
+
+  isExportOpen: boolean;
+  openExport: () => void;
+  closeExport: () => void;
 }
 
 const INITIAL_PRICE = 65000;
@@ -176,6 +184,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   recoveryModes: {},
   backtestResult: null,
   totalAllTimeProfit: 0,
+  isExportOpen: false,
 
   toggleSimulation: () =>
     set((state) => ({ isRunning: !state.isRunning })),
@@ -252,6 +261,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
       const newActive  = { ...state.activePositions };
       const newRecovery = { ...state.recoveryModes };
+      // Track node XP gains this tick (nodeId → xp delta)
+      const nodeXpGains: Record<string, number> = {};
 
       // ── Recovery check ────────────────────────────────────────────────────
       for (const nodeId in newRecovery) {
@@ -321,6 +332,10 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
           newActive[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
 
+          // Award XP to both condition and action nodes
+          nodeXpGains[conn.fromId] = (nodeXpGains[conn.fromId] ?? 0) + 1;
+          nodeXpGains[conn.toId]   = (nodeXpGains[conn.toId]   ?? 0) + 1;
+
           playSound('BUY');
           newLogs.push({ id: tradeId, message: `BUY $${amount} (${newUnits.toFixed(4)} ${state.asset}) @ $${price.toFixed(2)}`, time: timeStr, type: 'BUY' });
           newChartTrades.push({ id: tradeId, type: side, price, historyIndex: newCandleIndex });
@@ -351,6 +366,10 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
           // Reset averageBuyPrice on full exit
           if (pct === 100) newAverageBuyPrice = 0;
+
+          // Award XP to both condition and action nodes
+          nodeXpGains[conn.fromId] = (nodeXpGains[conn.fromId] ?? 0) + 1;
+          nodeXpGains[conn.toId]   = (nodeXpGains[conn.toId]   ?? 0) + 1;
 
           playSound('SELL');
           newLogs.push({ id: tradeId, message: `SELL ${pct}% (${sellUnits.toFixed(6)} ${state.asset}, $${revenue}) @ $${price.toFixed(2)}`, time: timeStr, type: 'SELL' });
@@ -391,6 +410,17 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         ...newChartTrades,
       ];
 
+      // Apply XP gains and compute new levels (every 3 exp = +1 level above base 1)
+      const updatedNodes = Object.keys(nodeXpGains).length > 0
+        ? state.nodes.map((n) => {
+            const gain = nodeXpGains[n.id];
+            if (!gain) return n;
+            const newExp   = (n.exp ?? 0) + gain;
+            const newLevel = Math.floor(newExp / 3) + 1;
+            return { ...n, exp: newExp, level: newLevel };
+          })
+        : state.nodes;
+
       return {
         currentPrice:       price,
         trailingHigh:       currentTrailingHigh,
@@ -404,6 +434,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         activePositions:    newActive,
         recoveryModes:      newRecovery,
         connections:        state.connections,
+        nodes:              updatedNodes,
         totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2)),
       };
     }),
@@ -554,6 +585,29 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       }
     };
   }),
+
+  // ── God Mode ──────────────────────────────────────────────────────────────
+  triggerShock: (type) => set((state) => {
+    const decimals   = state.asset === 'EUR/USD' ? 5 : 2;
+    const multiplier = type === 'MOON' ? 1.15 : 0.80;
+    const newPrice   = parseFloat((state.currentPrice * multiplier).toFixed(decimals));
+    const shockCandle: OHLCCandle = {
+      open:  state.currentPrice,
+      high:  type === 'MOON' ? newPrice : state.currentPrice,
+      low:   type === 'CRASH' ? newPrice : state.currentPrice,
+      close: newPrice,
+    };
+    return {
+      currentPrice: newPrice,
+      trailingHigh: Math.max(state.trailingHigh, newPrice),
+      trailingLow:  Math.min(state.trailingLow,  newPrice),
+      priceHistory: [...state.priceHistory, shockCandle].slice(-HISTORY_CAP),
+    };
+  }),
+
+  // ── Export Modal ──────────────────────────────────────────────────────────
+  openExport:  () => set({ isExportOpen: true }),
+  closeExport: () => set({ isExportOpen: false }),
 
   loadTemplate: (type) => set((state) => {
     const template =

@@ -16,7 +16,7 @@ export default function Header() {
   const {
     balance, assets, asset, currentPrice,
     isRunning, toggleSimulation, deposit, setAsset,
-    totalAllTimeProfit,
+    totalAllTimeProfit, triggerShock,
   } = useSimulationStore();
 
   const [showDeposit, setShowDeposit] = useState(false);
@@ -184,6 +184,33 @@ export default function Header() {
             className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-[#00ff88]/30 text-[#00ff88]/60 hover:border-[#00ff88]/70 hover:text-[#00ff88] transition-all"
           >
             + Deposit
+          </button>
+        </div>
+
+        {/* ── God Mode ── */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl border border-white/8 bg-white/[0.02]">
+          <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/25 mr-1">
+            God
+          </span>
+          <button
+            onClick={() => triggerShock('MOON')}
+            title="MOON +15%"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-all duration-150 border border-transparent hover:border-[#fbbf24]/50 hover:bg-[#fbbf24]/10 active:scale-90"
+            style={{ textShadow: '0 0 10px rgba(251,191,36,0)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.textShadow = '0 0 14px rgba(251,191,36,0.9)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.textShadow = '0 0 10px rgba(251,191,36,0)'; }}
+          >
+            🚀
+          </button>
+          <button
+            onClick={() => triggerShock('CRASH')}
+            title="CRASH -20%"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-all duration-150 border border-transparent hover:border-[#ff4d4d]/50 hover:bg-[#ff4d4d]/10 active:scale-90"
+            style={{ textShadow: '0 0 10px rgba(255,77,77,0)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.textShadow = '0 0 14px rgba(255,77,77,0.9)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.textShadow = '0 0 10px rgba(255,77,77,0)'; }}
+          >
+            📉
           </button>
         </div>
 

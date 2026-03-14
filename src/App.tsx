@@ -5,6 +5,7 @@ import MainArea from './components/MainArea';
 import Sidebar from './components/Sidebar';
 import WelcomeModal from './components/WelcomeModal';
 import BacktestModal from './components/BacktestModal';
+import ExportModal from './components/ExportModal';
 
 export default function App() {
   const { isRunning, tick, simulationSpeed } = useSimulationStore();
@@ -20,6 +21,7 @@ export default function App() {
       <Header />
       <WelcomeModal />
       <BacktestModal />
+      <ExportModal />
       <div className="flex flex-1 overflow-hidden">
         <MainArea />
         <Sidebar />

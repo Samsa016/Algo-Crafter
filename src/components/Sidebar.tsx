@@ -39,15 +39,21 @@ function NodeCard({
   }, [node.x, node.y, motionX, motionY]);
 
   const isCondition = node.type === 'CONDITION';
+  const isLeveled   = (node.level ?? 1) > 1;
+
   const borderColor = isPendingFrom
     ? '#facc15'
     : isPendingTarget
     ? '#00ff88'
+    : isLeveled
+    ? '#fbbf24'
     : isCondition
     ? '#a78bfa'
     : '#00ff88';
   const glowColor = isPendingFrom
     ? 'rgba(250,204,21,0.3)'
+    : isLeveled
+    ? 'rgba(251,191,36,0.4)'
     : isCondition
     ? 'rgba(167,139,250,0.25)'
     : 'rgba(0,255,136,0.2)';
@@ -86,9 +92,25 @@ function NodeCard({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-[10px] font-bold uppercase tracking-widest ${labelColor}`}>
-          {node.type}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[10px] font-bold uppercase tracking-widest ${labelColor}`}>
+            {node.type}
+          </span>
+          {/* Level badge — only shown when leveled up */}
+          {isLeveled && (
+            <span
+              className="text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none"
+              style={{
+                background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15))',
+                border: '1px solid rgba(251,191,36,0.5)',
+                color: '#fbbf24',
+                textShadow: '0 0 8px rgba(251,191,36,0.8)',
+              }}
+            >
+              LVL {node.level}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-white/20 font-mono">{node.id.slice(-4)}</span>
           <button
@@ -330,7 +352,7 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
-  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, runBacktest, loadTemplate } = useSimulationStore();
+  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, runBacktest, loadTemplate, openExport } = useSimulationStore();
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
@@ -540,12 +562,20 @@ export default function Sidebar() {
         );
       })()}
       
-      <button
-        onClick={() => runBacktest(1000)}
-        className="w-full py-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 hover:border-violet-500/60 transition-all font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(167,139,250,0.1)] shrink-0"
-      >
-        <span>⚡</span> Run Backtest (1000 ticks)
-      </button>
+      <div className="flex gap-2 shrink-0">
+        <button
+          onClick={() => runBacktest(1000)}
+          className="flex-1 py-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 hover:border-violet-500/60 transition-all font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(167,139,250,0.1)]"
+        >
+          <span>⚡</span> Backtest
+        </button>
+        <button
+          onClick={openExport}
+          className="flex-1 py-3 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#60a5fa] hover:bg-[#3b82f6]/20 hover:border-[#3b82f6]/60 transition-all font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+        >
+          <span>🐍</span> Export
+        </button>
+      </div>
 
       {/* ── Strategy Log ── */}
       <div className="bg-[#161b22]/80 backdrop-blur-md border border-white/10 rounded-xl p-4 flex flex-col h-[28vh] min-h-[140px]">
