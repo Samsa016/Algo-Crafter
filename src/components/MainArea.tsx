@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSimulationStore } from '../store';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSimulationStore, OHLCCandle } from '../store';
 
 // ─── Particle type ────────────────────────────────────────────────────────────
 interface Particle {
@@ -10,13 +11,36 @@ interface Particle {
 }
 
 // ─── Toolbar tool type ────────────────────────────────────────────────────────
-type Tool = 'cursor' | 'crosshair' | 'hline';
+type Tool = 'cursor' | 'crosshair' | 'hline' | 'measure';
 
 const TOOLBAR_TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: 'cursor',    label: 'Cursor',    icon: '↖' },
   { id: 'crosshair', label: 'Crosshair', icon: '⊕' },
   { id: 'hline',     label: 'H-Line',    icon: '—' },
+  { id: 'measure',   label: 'Measure',   icon: '📏' },
 ];
+
+// ─── Candle aggregation ───────────────────────────────────────────────────────
+// 1 tick = 1 second. Chunks: 1s=1, 1m=60, 5m=300, 1h=3600
+const TF_CHUNK: Record<string, number> = {
+  '1s': 1, '1m': 60, '5m': 300, '1h': 3600,
+};
+
+function aggregateCandles(history: OHLCCandle[], timeframe: string): OHLCCandle[] {
+  const chunk = TF_CHUNK[timeframe] ?? 1;
+  if (chunk === 1) return history;
+  const result: OHLCCandle[] = [];
+  for (let i = 0; i < history.length; i += chunk) {
+    const slice = history.slice(i, i + chunk);
+    result.push({
+      open:  slice[0].open,
+      close: slice[slice.length - 1].close,
+      high:  Math.max(...slice.map((c) => c.high)),
+      low:   Math.min(...slice.map((c) => c.low)),
+    });
+  }
+  return result;
+}
 
 export default function MainArea() {
   const {
@@ -32,60 +56,66 @@ export default function MainArea() {
 
   const TIMEFRAMES = ['1s', '1m', '5m', '1h'] as const;
 
-  const visibleCandlesMap: Record<string, number> = {
-    '1s': 30, '1m': 60, '5m': 80, '1h': 100,
-  };
-  const visibleCandles = visibleCandlesMap[timeframe] ?? 60;
-  const visibleHistory = priceHistory.slice(-visibleCandles);
+  // ── Zoom state (replaces visibleCandlesMap) ───────────────────────────────
+  const [zoomLevel, setZoomLevel] = useState(60);
+
+  // ── Aggregate + slice visible candles ────────────────────────────────────
+  const aggregated    = aggregateCandles(priceHistory, timeframe);
+  const visibleHistory = aggregated.slice(-zoomLevel);
 
   const lastClose  = visibleHistory[visibleHistory.length - 1]?.close ?? currentPrice;
   const firstClose = visibleHistory[0]?.close ?? currentPrice;
   const isUp       = lastClose >= firstClose;
   const accentColor = isUp ? '#00ff88' : '#ff4d4d';
-  
-const [activeTool, setActiveTool] = useState<Tool>('cursor');
+
+  // ── Toolbar state ─────────────────────────────────────────────────────────
+  const [toolbarOpen, setToolbarOpen] = useState(true);
+  const [activeTool, setActiveTool] = useState<Tool>('cursor');
   const [hLines, setHLines] = useState<number[]>([]);
   const [showSMA, setShowSMA] = useState(false);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
-  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const activeToolRef = useRef<Tool>('cursor');
-  const hLinesRef = useRef<number[]>([]);
-  const showSMARef = useRef(false);
+  const hLinesRef     = useRef<number[]>([]);
+  const showSMARef    = useRef(false);
 
   useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
   useEffect(() => { hLinesRef.current = hLines; }, [hLines]);
   useEffect(() => { showSMARef.current = showSMA; }, [showSMA]);
 
   // Particles
-  const particlesRef          = useRef<Particle[]>([]);
-  const previousTradesCount   = useRef(chartTrades.length);
-  const rafRef                = useRef<number | null>(null);
+  const particlesRef        = useRef<Particle[]>([]);
+  const previousTradesCount = useRef(chartTrades.length);
+  const rafRef              = useRef<number | null>(null);
 
   // Mouse position stored in a ref — avoids re-renders on every mousemove
   const mousePosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Stable refs for toX/toY so click handler & spawner can use them
-  const toXRef = useRef<((i: number) => number) | null>(null);
-  const toYRef = useRef<((p: number) => number) | null>(null);
-  // Inverse of toY: canvas-y → price
+  const toXRef   = useRef<((i: number) => number) | null>(null);
+  const toYRef   = useRef<((p: number) => number) | null>(null);
   const fromYRef = useRef<((canvasY: number) => number) | null>(null);
 
-
-
   // Stable snapshot refs for draw (updated each render)
-  const visibleHistoryRef = useRef(visibleHistory);
-  const priceHistoryRef   = useRef(priceHistory);
-  const chartTypeRef      = useRef(chartType);
-  const accentColorRef    = useRef(accentColor);
-  const chartTradesRef    = useRef(chartTrades);
-  visibleHistoryRef.current = visibleHistory;
-  priceHistoryRef.current   = priceHistory;
-  chartTypeRef.current      = chartType;
-  accentColorRef.current    = accentColor;
-  chartTradesRef.current    = chartTrades;
+  const visibleHistoryRef  = useRef(visibleHistory);
+  const aggregatedRef      = useRef(aggregated);
+  const priceHistoryRef    = useRef(priceHistory);
+  const chartTypeRef       = useRef(chartType);
+  const accentColorRef     = useRef(accentColor);
+  const chartTradesRef     = useRef(chartTrades);
+  const timeframeRef       = useRef(timeframe);
+  const zoomLevelRef       = useRef(zoomLevel);
+  visibleHistoryRef.current  = visibleHistory;
+  aggregatedRef.current      = aggregated;
+  priceHistoryRef.current    = priceHistory;
+  chartTypeRef.current       = chartType;
+  accentColorRef.current     = accentColor;
+  chartTradesRef.current     = chartTrades;
+  timeframeRef.current       = timeframe;
+  zoomLevelRef.current       = zoomLevel;
 
   // ─── Core draw function (stable — never recreated) ────────────────────────
   const draw = useCallback(() => {
@@ -173,7 +203,6 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       gradFill.addColorStop(0, ac + '33');
       gradFill.addColorStop(1, ac + '00');
 
-      // Fill area
       ctx.beginPath();
       ctx.moveTo(toX(0), toY(closes[0]));
       for (let i = 1; i < closes.length; i++) {
@@ -186,7 +215,6 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       ctx.fillStyle = gradFill;
       ctx.fill();
 
-      // Glow pass
       ctx.beginPath();
       ctx.moveTo(toX(0), toY(closes[0]));
       for (let i = 1; i < closes.length; i++) {
@@ -201,7 +229,6 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       ctx.shadowBlur  = 20;
       ctx.stroke();
 
-      // Core line
       ctx.beginPath();
       ctx.moveTo(toX(0), toY(closes[0]));
       for (let i = 1; i < closes.length; i++) {
@@ -214,7 +241,6 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       ctx.stroke();
       ctx.shadowBlur  = 0;
 
-      // Tip dot
       const tipX = toX(closes.length - 1);
       const tipY = toY(closes[closes.length - 1]);
       ctx.beginPath();
@@ -227,7 +253,7 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
 
     } else {
       // ── CANDLESTICK chart ──────────────────────────────────────────────────
-      const n      = vh.length;
+      const n       = vh.length;
       const candleW = Math.max(2, (chartW / n) * 0.6);
       const halfW   = candleW / 2;
 
@@ -261,54 +287,48 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       }
     }
 
- // ── Trade markers ────────────────────────────────────────────────────────
-    const historyOffset = priceHistoryRef.current.length - vh.length;
-    const MARKER_RADIUS = 8; // Размер кружочка
-    
+    // ── Trade markers ─────────────────────────────────────────────────────────
+    // Map raw historyIndex → aggregated candle index
+    const chunk = TF_CHUNK[timeframeRef.current] ?? 1;
+    const agg   = aggregatedRef.current;
+    // visibleHistory starts at offset (agg.length - zoomLevel) within aggregated
+    const aggOffset = Math.max(0, agg.length - zoomLevelRef.current);
+    const MARKER_RADIUS = 8;
+
     for (const trade of chartTradesRef.current) {
       const { historyIndex, price: tradePrice, type } = trade;
-      const vi = historyIndex - historyOffset;
+      // Convert raw tick index → aggregated candle index
+      const aggIdx = Math.floor(historyIndex / chunk);
+      // Convert aggregated index → visible index
+      const vi = aggIdx - aggOffset;
       if (vi < 0 || vi >= vh.length) continue;
 
       const mx    = toX(vi);
       const my    = toY(tradePrice);
       const isBuy = type === 'BUY';
       const color = isBuy ? '#00ff88' : '#ff4d4d';
-
-      // BUY снизу свечи, SELL сверху свечи
-      const cy = isBuy ? my + 16 : my - 16;
+      const cy    = isBuy ? my + 16 : my - 16;
 
       ctx.save();
-      
-      // Неоновое свечение и сам кружок
       ctx.shadowColor = color;
       ctx.shadowBlur  = 10;
       ctx.fillStyle   = color;
       ctx.beginPath();
       ctx.arc(mx, cy, MARKER_RADIUS, 0, Math.PI * 2);
       ctx.fill();
-      
-      // Отключаем тень для четкого текста
       ctx.shadowBlur = 0;
-      
-      // Настройка шрифта
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      
-      // Тонкая черная обводка текста (stroke)
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 2;
       ctx.strokeText(isBuy ? 'B' : 'S', mx, cy + 0.5);
-      
-      // Белый текст внутри
       ctx.fillStyle = '#ffffff';
       ctx.fillText(isBuy ? 'B' : 'S', mx, cy + 0.5);
-      
       ctx.restore();
     }
 
-// ── SMA 20 Overlay ──
+    // ── SMA 20 Overlay ────────────────────────────────────────────────────────
     if (showSMARef.current && priceHistoryRef.current.length > 0) {
       ctx.save();
       ctx.beginPath();
@@ -319,25 +339,21 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       let firstSMA = true;
 
       for (let vi = 0; vi < vh.length; vi++) {
-        const globalIdx = historyOffset + vi;
-        if (globalIdx < 19) continue; 
+        const globalAggIdx = aggOffset + vi;
+        if (globalAggIdx < 19) continue;
         let sum = 0;
-        for (let j = 0; j < 20; j++) sum += priceHistoryRef.current[globalIdx - j].close;
+        for (let j = 0; j < 20; j++) sum += agg[globalAggIdx - j].close;
         const sma = sum / 20;
-
         const x = toX(vi);
         const y = toY(sma);
-        if (firstSMA) {
-          ctx.moveTo(x, y);
-          firstSMA = false;
-        } else {
-          ctx.lineTo(x, y);
-        }
+        if (firstSMA) { ctx.moveTo(x, y); firstSMA = false; }
+        else          { ctx.lineTo(x, y); }
       }
       ctx.stroke();
       ctx.restore();
     }
-    // ── H-Lines ──────────────────────────────────────────────────────────────
+
+    // ── H-Lines ───────────────────────────────────────────────────────────────
     ctx.save();
     ctx.strokeStyle = '#a78bfa';
     ctx.lineWidth   = 1;
@@ -351,7 +367,6 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       ctx.moveTo(PAD.left, y);
       ctx.lineTo(W - PAD.right, y);
       ctx.stroke();
-      // Price label on right axis
       ctx.shadowBlur  = 0;
       ctx.fillStyle   = '#0d1117';
       ctx.fillRect(W - PAD.right + 2, y - 9, PAD.right - 4, 18);
@@ -364,30 +379,18 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
     ctx.setLineDash([]);
     ctx.restore();
 
-    // ── Crosshair ────────────────────────────────────────────────────────────
+    // ── Crosshair ─────────────────────────────────────────────────────────────
     const mp = mousePosRef.current;
-    if (mp && activeToolRef.current === 'crosshair') {
+    if (mp && (activeToolRef.current === 'crosshair' || activeToolRef.current === 'measure')) {
       const { x: mx, y: my } = mp;
       ctx.save();
       ctx.strokeStyle = 'rgba(255,255,255,0.35)';
       ctx.lineWidth   = 1;
       ctx.setLineDash([4, 4]);
-
-      // Vertical line
-      ctx.beginPath();
-      ctx.moveTo(mx, PAD.top);
-      ctx.lineTo(mx, H - PAD.bottom);
-      ctx.stroke();
-
-      // Horizontal line
-      ctx.beginPath();
-      ctx.moveTo(PAD.left, my);
-      ctx.lineTo(W - PAD.right, my);
-      ctx.stroke();
-
+      ctx.beginPath(); ctx.moveTo(mx, PAD.top); ctx.lineTo(mx, H - PAD.bottom); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PAD.left, my); ctx.lineTo(W - PAD.right, my); ctx.stroke();
       ctx.setLineDash([]);
 
-      // Price label on right Y-axis
       const hoverPrice = fromY(my);
       if (my >= PAD.top && my <= H - PAD.bottom) {
         ctx.fillStyle = 'rgba(255,255,255,0.12)';
@@ -398,7 +401,6 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
         ctx.fillText(`$${hoverPrice.toFixed(2)}`, W - PAD.right + 5, my + 4);
       }
 
-      // Crosshair dot
       ctx.beginPath();
       ctx.arc(mx, my, 3, 0, Math.PI * 2);
       ctx.fillStyle   = 'rgba(255,255,255,0.7)';
@@ -406,19 +408,17 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       ctx.shadowBlur  = 8;
       ctx.fill();
       ctx.shadowBlur  = 0;
-
       ctx.restore();
     }
 
-    // ── Particles ────────────────────────────────────────────────────────────
+    // ── Particles ─────────────────────────────────────────────────────────────
     const alive: Particle[] = [];
     for (const p of particlesRef.current) {
-      p.vy   += 0.2;   // gravity
+      p.vy   += 0.2;
       p.x    += p.vx;
       p.y    += p.vy;
       p.life -= 0.025;
       if (p.life <= 0) continue;
-
       ctx.save();
       ctx.globalAlpha  = p.life;
       ctx.fillStyle    = p.color;
@@ -428,12 +428,10 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
       ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-
       alive.push(p);
     }
     particlesRef.current = alive;
 
-    // Keep RAF running while particles are alive
     if (alive.length > 0) {
       rafRef.current = requestAnimationFrame(draw);
     } else {
@@ -444,15 +442,13 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
 
   // ─── Trigger draw on data changes ─────────────────────────────────────────
   useEffect(() => {
-    // Cancel any in-flight RAF so we don't double-draw
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
     draw();
-  // visibleHistory, chartType, accentColor, chartTrades all change together
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleHistory, priceHistory, chartType, accentColor, chartTrades, hLines]);
+  }, [visibleHistory, priceHistory, chartType, accentColor, chartTrades, hLines, zoomLevel]);
 
   // ─── ResizeObserver ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -472,16 +468,18 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
     const newTrades = chartTrades.slice(prev);
     previousTradesCount.current = curr;
 
-    // We need toX/toY — they're set during draw; if not yet set, skip
     const toX = toXRef.current;
     const toY = toYRef.current;
     if (!toX || !toY) return;
 
-    const vh            = visibleHistoryRef.current;
-    const historyOffset = priceHistoryRef.current.length - vh.length;
+    const vh      = visibleHistoryRef.current;
+    const chunk   = TF_CHUNK[timeframeRef.current] ?? 1;
+    const agg     = aggregatedRef.current;
+    const aggOff  = Math.max(0, agg.length - zoomLevelRef.current);
 
     for (const trade of newTrades) {
-      const vi = trade.historyIndex - historyOffset;
+      const aggIdx = Math.floor(trade.historyIndex / chunk);
+      const vi     = aggIdx - aggOff;
       if (vi < 0 || vi >= vh.length) continue;
 
       const cx    = toX(vi);
@@ -490,31 +488,36 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
 
       for (let k = 0; k < 20; k++) {
         particlesRef.current.push({
-          x:     cx,
-          y:     cy,
-          vx:    (Math.random() - 0.5) * 6,
-          vy:    -(Math.random() * 6),
-          life:  1.0,
+          x: cx, y: cy,
+          vx: (Math.random() - 0.5) * 6,
+          vy: -(Math.random() * 6),
+          life: 1.0,
           color,
         });
       }
     }
 
-    // Kick off RAF loop if not already running
     if (rafRef.current === null) {
       rafRef.current = requestAnimationFrame(draw);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartTrades]);
 
+  // ─── Mouse-wheel zoom ──────────────────────────────────────────────────────
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setZoomLevel((prev) => {
+      const delta = e.deltaY > 0 ? 10 : -10;
+      return Math.min(500, Math.max(10, prev + delta));
+    });
+  }, []);
+
   // ─── Mouse handlers ────────────────────────────────────────────────────────
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     mousePosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-
-    // Redraw for crosshair (only when crosshair tool active)
-    if (activeToolRef.current === 'crosshair') {
+    if (activeToolRef.current === 'crosshair' || activeToolRef.current === 'measure') {
       if (rafRef.current === null) {
         rafRef.current = requestAnimationFrame(() => { rafRef.current = null; draw(); });
       }
@@ -523,7 +526,7 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
 
   const handleMouseLeave = useCallback(() => {
     mousePosRef.current = null;
-    if (activeToolRef.current === 'crosshair') draw();
+    if (activeToolRef.current === 'crosshair' || activeToolRef.current === 'measure') draw();
   }, [draw]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -532,7 +535,7 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
     if (!fromY) return;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const canvasY     = e.clientY - rect.top;
+    const canvasY      = e.clientY - rect.top;
     const clickedPrice = fromY(canvasY);
     setHLines((prev) => [...prev, parseFloat(clickedPrice.toFixed(2))]);
   }, []);
@@ -542,6 +545,7 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
     cursor:    'default',
     crosshair: 'crosshair',
     hline:     'row-resize',
+    measure:   'crosshair',
   };
 
   return (
@@ -567,6 +571,13 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
           </div>
 
           <div className="flex items-center gap-4">
+
+            {/* Zoom indicator */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 whitespace-nowrap">
+                Zoom: <span className="text-white/60 font-mono">{zoomLevel}</span>
+              </span>
+            </div>
 
             {/* Speed slider */}
             <div className="flex items-center gap-2.5">
@@ -646,55 +657,87 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
+          onWheel={handleWheel}
         >
           <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
-          {/* ── TradingView-style Toolbar ── */}
-          <div className="absolute left-3 top-4 z-20 flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#0d1117]/80 backdrop-blur-md border border-white/10 shadow-2xl">
-            {TOOLBAR_TOOLS.map((tool) => {
-              const isActive = activeTool === tool.id;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={(e) => { e.stopPropagation(); setActiveTool(tool.id); }}
-                  title={tool.label}
-                  className={`w-8 h-8 flex flex-col items-center justify-center rounded-lg transition-all gap-0.5 group ${
-                    isActive
-                      ? 'bg-[#00ff88]/15 border border-[#00ff88]/40 text-[#00ff88] shadow-[0_0_12px_rgba(0,255,136,0.2)]'
-                      : 'border border-transparent text-white/30 hover:text-white/70 hover:bg-white/5 hover:border-white/10'
-                  }`}
-                >
-                  <span className="text-sm leading-none">{tool.icon}</span>
-                </button>
-              );
-            })}
-            
-            <div className="w-full h-px bg-white/10 my-0.5" />
+          {/* ── Floating Collapsible Toolbar ── */}
+          <div className="absolute left-3 top-4 z-20 flex flex-col gap-1">
+
+            {/* Toggle button — always visible */}
             <button
-              onClick={(e) => { e.stopPropagation(); setShowSMA(!showSMA); }}
-              title="Toggle SMA 20"
-              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all text-xs font-bold font-mono ${
-                showSMA
-                  ? 'bg-[#ff9900]/20 text-[#ff9900] border border-[#ff9900]/40'
-                  : 'bg-transparent text-white/40 border border-transparent hover:text-white/80 hover:bg-white/5'
-              }`}
+              onClick={(e) => { e.stopPropagation(); setToolbarOpen((o) => !o); }}
+              title={toolbarOpen ? 'Collapse toolbar' : 'Expand toolbar'}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all text-sm
+                bg-[#0d1117]/90 backdrop-blur-md border shadow-2xl
+                ${toolbarOpen
+                  ? 'border-[#00ff88]/30 text-[#00ff88]/70 hover:text-[#00ff88]'
+                  : 'border-white/10 text-white/40 hover:text-white/80 hover:border-white/20'
+                }`}
             >
-              S
+              {toolbarOpen ? '✕' : '⚙'}
             </button>
-            
-            {/* Divider + clear H-lines button (only when lines exist) */}
-            {hLines.length > 0 && (
-              <>
-                <div className="w-full h-px bg-white/10 my-0.5" />
-                <button
-                  onClick={(e) => { e.stopPropagation(); setHLines([]); }}
-                  title="Clear all H-Lines"
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-transparent text-white/20 hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10 hover:border-[#ff4d4d]/20 transition-all text-xs"
+
+            {/* Animated panel */}
+            <AnimatePresence initial={false}>
+              {toolbarOpen && (
+                <motion.div
+                  key="toolbar-panel"
+                  initial={{ opacity: 0, scaleY: 0, originY: 0 }}
+                  animate={{ opacity: 1, scaleY: 1, originY: 0 }}
+                  exit={{ opacity: 0, scaleY: 0, originY: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeInOut' }}
+                  className="flex flex-col gap-1.5 p-1.5 rounded-xl bg-[#0d1117]/80 backdrop-blur-md border border-white/10 shadow-2xl"
                 >
-                  ✕
-                </button>
-              </>
-            )}
+                  {TOOLBAR_TOOLS.map((tool) => {
+                    const isActive = activeTool === tool.id;
+                    return (
+                      <button
+                        key={tool.id}
+                        onClick={(e) => { e.stopPropagation(); setActiveTool(tool.id); }}
+                        title={tool.label}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                          isActive
+                            ? 'bg-[#00ff88]/15 border border-[#00ff88]/40 text-[#00ff88] shadow-[0_0_12px_rgba(0,255,136,0.2)]'
+                            : 'border border-transparent text-white/30 hover:text-white/70 hover:bg-white/5 hover:border-white/10'
+                        }`}
+                      >
+                        <span className="text-sm leading-none">{tool.icon}</span>
+                      </button>
+                    );
+                  })}
+
+                  <div className="w-full h-px bg-white/10 my-0.5" />
+
+                  {/* SMA toggle */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowSMA(!showSMA); }}
+                    title="Toggle SMA 20"
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all text-xs font-bold font-mono ${
+                      showSMA
+                        ? 'bg-[#ff9900]/20 text-[#ff9900] border border-[#ff9900]/40'
+                        : 'bg-transparent text-white/40 border border-transparent hover:text-white/80 hover:bg-white/5'
+                    }`}
+                  >
+                    S
+                  </button>
+
+                  {/* Clear H-lines (only when lines exist) */}
+                  {hLines.length > 0 && (
+                    <>
+                      <div className="w-full h-px bg-white/10 my-0.5" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setHLines([]); }}
+                        title="Clear all H-Lines"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-transparent text-white/20 hover:text-[#ff4d4d] hover:bg-[#ff4d4d]/10 hover:border-[#ff4d4d]/20 transition-all text-xs"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* H-line count badge */}
@@ -706,6 +749,11 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
               </span>
             </div>
           )}
+
+          {/* Zoom hint */}
+          <div className="absolute bottom-3 right-4 z-10 text-[9px] font-mono text-white/15 pointer-events-none select-none">
+            scroll to zoom · {zoomLevel} candles
+          </div>
         </div>
 
       </div>

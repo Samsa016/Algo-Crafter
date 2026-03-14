@@ -101,7 +101,7 @@ export interface ActivePosition {
   operator?: 'lt' | 'gt' | 'drop' | 'rise';
 }
 
-const HISTORY_CAP = 100;
+const HISTORY_CAP = 10000;
 
 interface SimulationState {
   balance: number;
@@ -210,18 +210,14 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       const lastCandle = state.priceHistory[state.priceHistory.length - 1];
       const open = lastCandle.close;
 
-      const timeframeMultiplierMap: Record<string, number> = {
-        '1s': 1, '1m': 2, '5m': 4, '1h': 8,
-      };
-      const timeframeMultiplier = timeframeMultiplierMap[state.timeframe] ?? 1;
-
+      // Each tick is always a 1-second tick — timeframe only affects aggregation in the chart
       let change: number;
       if (state.asset === 'EUR/USD') {
-        change = (Math.random() - 0.5) * 0.001 * timeframeMultiplier;
+        change = (Math.random() - 0.5) * 0.001;
       } else if (state.asset === 'ETH/USD') {
-        change = (Math.random() - 0.5) * 40 * timeframeMultiplier;
+        change = (Math.random() - 0.5) * 40;
       } else {
-        change = (Math.random() - 0.5) * 300 * timeframeMultiplier;
+        change = (Math.random() - 0.5) * 300;
       }
       const close = Math.max(0.0001, open + change);
 
