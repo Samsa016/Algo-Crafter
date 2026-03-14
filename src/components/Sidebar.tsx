@@ -106,26 +106,69 @@ function NodeCard({
       {isCondition ? (
         <div className="flex flex-col gap-1.5">
           <div className="flex gap-1">
+            {/* Operator selector — all 4 modes */}
             <select
               value={node.data.operator ?? 'lt'}
-              onChange={(e) =>
-                updateNodeData(node.id, { operator: e.target.value as 'lt' | 'gt' })
-              }
+              onChange={(e) => {
+                const newOp = e.target.value as 'lt' | 'gt' | 'drop' | 'rise';
+                updateNodeData(node.id, {
+                  operator: newOp,
+                  // Seed defaults so the engine never sees undefined on first tick
+                  ...(newOp === 'drop' && node.data.dropPercent == null ? { dropPercent: 5 } : {}),
+                  ...(newOp === 'rise' && node.data.risePercent == null ? { risePercent: 5 } : {}),
+                });
+              }}
               onPointerDown={(e) => e.stopPropagation()}
               className="flex-1 bg-white/5 border border-white/10 rounded text-white text-xs px-1 py-1 outline-none cursor-pointer"
             >
-              <option value="lt" className="bg-[#161b22] text-white">Price &lt;</option>
-              <option value="gt" className="bg-[#161b22] text-white">Price &gt;</option>
+              <option value="lt"   className="bg-[#161b22] text-white">Price &lt;</option>
+              <option value="gt"   className="bg-[#161b22] text-white">Price &gt;</option>
+              <option value="drop" className="bg-[#161b22] text-white">Drop %</option>
+              <option value="rise" className="bg-[#161b22] text-white">Rise %</option>
             </select>
-            <input
-                type="number"
-                value={Number.isNaN(node.data.targetPrice) ? '' : (node.data.targetPrice ?? 150)}
-              onChange={(e) =>
-                updateNodeData(node.id, { targetPrice: parseFloat(e.target.value) })
-              }
-              onPointerDown={(e) => e.stopPropagation()}
-              className="w-16 bg-white/5 border border-white/10 rounded text-white text-xs px-1 py-1 outline-none font-mono"
-            />
+
+            {/* Dynamic value input — % for drop/rise, $ for lt/gt */}
+            {(node.data.operator === 'drop' || node.data.operator === 'rise') ? (
+              <div
+                className="flex items-center gap-0.5 w-16 bg-white/5 border border-white/10 rounded px-1"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="number"
+                  value={
+                    node.data.operator === 'drop'
+                      ? (Number.isNaN(node.data.dropPercent) ? '' : (node.data.dropPercent ?? 5))
+                      : (Number.isNaN(node.data.risePercent) ? '' : (node.data.risePercent ?? 5))
+                  }
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (node.data.operator === 'drop') {
+                      updateNodeData(node.id, { dropPercent: val });
+                    } else {
+                      updateNodeData(node.id, { risePercent: val });
+                    }
+                  }}
+                  className="w-full bg-transparent text-white text-xs py-1 outline-none font-mono text-right"
+                  placeholder="5"
+                />
+                <span className="text-[10px] text-white/40 shrink-0">%</span>
+              </div>
+            ) : (
+              <div
+                className="flex items-center gap-0.5 w-16 bg-white/5 border border-white/10 rounded px-1"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <span className="text-[10px] text-white/40 shrink-0">$</span>
+                <input
+                  type="number"
+                  value={Number.isNaN(node.data.targetPrice) ? '' : (node.data.targetPrice ?? 150)}
+                  onChange={(e) =>
+                    updateNodeData(node.id, { targetPrice: parseFloat(e.target.value) })
+                  }
+                  className="w-full bg-transparent text-white text-xs py-1 outline-none font-mono"
+                />
+              </div>
+            )}
           </div>
           <button
             onPointerDown={(e) => e.stopPropagation()}
@@ -287,7 +330,7 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
-  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, runBacktest } = useSimulationStore();
+  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, runBacktest, loadTemplate } = useSimulationStore();
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
@@ -325,9 +368,17 @@ export default function Sidebar() {
 
         {/* Header + spawn buttons */}
         <div className="px-4 pt-4 pb-3 border-b border-white/10 shrink-0">
-          <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-3">
-            Node Strategy Builder
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">
+              Node Strategy Builder
+            </p>
+            <button
+              onClick={() => loadTemplate('DCA')}
+              className="text-[9px] px-2 py-1 rounded bg-violet-500/20 text-violet-300 border border-violet-500/40 hover:bg-violet-500/35 hover:border-violet-400/60 hover:text-violet-200 transition-all uppercase tracking-widest font-bold shadow-[0_0_12px_rgba(167,139,250,0.25)] active:scale-95"
+            >
+              ⚡ DCA Template
+            </button>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => spawnNode('CONDITION')}

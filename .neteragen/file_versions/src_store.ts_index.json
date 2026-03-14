@@ -2,452 +2,312 @@
   "file_name": "src/store.ts",
   "revisions": [
     {
-      "revision_id": "504ece83-d2d2-4405-9e6d-0015707ea293",
+      "revision_id": "6c6a4a94-7ec7-4355-a8b2-0c20162a0e7e",
       "metadata": {
-        "timestamp": "2026-03-02T13:45:47.905329",
+        "timestamp": "2026-03-14T13:38:12.239677",
         "type": "cache_version",
-        "source": "manual_save",
+        "source": "ToolTextFileEdit",
+        "size": 20227,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:38:12.241275"
+    },
+    {
+      "revision_id": "0cd8c54e-3da5-4bc3-8aa1-0144f00c33a6",
+      "metadata": {
+        "timestamp": "2026-03-14T13:38:05.121307",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 19722,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:38:05.125136"
+    },
+    {
+      "revision_id": "30a3c854-31e8-44be-ad66-2029655aa390",
+      "metadata": {
+        "timestamp": "2026-03-14T13:37:59.793744",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 19685,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:37:59.796013"
+    },
+    {
+      "revision_id": "df9056e9-1517-4941-ab5c-db3b041b92c4",
+      "metadata": {
+        "timestamp": "2026-03-14T13:35:45.090157",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 19639,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:35:45.093611"
+    },
+    {
+      "revision_id": "80f6250e-3476-4d6f-a987-daaa021b8c9c",
+      "metadata": {
+        "timestamp": "2026-03-14T13:35:09.222419",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 18255,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:35:09.229784"
+    },
+    {
+      "revision_id": "3fc539d2-798d-4a96-9a75-85aeaf27ad21",
+      "metadata": {
+        "timestamp": "2026-03-14T13:34:16.406495",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 16907,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:34:16.446368"
+    },
+    {
+      "revision_id": "442b1ee8-b7ca-4df9-b5f3-7414677fbd09",
+      "metadata": {
+        "timestamp": "2026-03-14T13:34:11.678131",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 16824,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:34:11.681359"
+    },
+    {
+      "revision_id": "18dfceb3-7d6d-4465-be09-99b559406888",
+      "metadata": {
+        "timestamp": "2026-03-14T13:34:07.295251",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 16752,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:34:07.299036"
+    },
+    {
+      "revision_id": "45008a04-1e88-4da7-9fe5-79a457491182",
+      "metadata": {
+        "timestamp": "2026-03-14T13:34:02.656691",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 16732,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T13:34:02.658690"
+    },
+    {
+      "revision_id": "918a30f4-310a-4208-9f27-7f45c92ae5aa",
+      "metadata": {
+        "timestamp": "2026-03-14T13:34:02.620593",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
         "size": 16662,
         "is_reverted": false,
         "git_branch_name": "main",
         "agent_name": "Cody",
         "description": null
       },
-      "saved_at": "2026-03-02T13:45:47.911041"
+      "saved_at": "2026-03-14T13:34:02.621629"
     },
     {
-      "revision_id": "a007c457-16f9-4ff4-afd8-4fd045ec771d",
+      "revision_id": "4f486449-c191-422f-8c6b-0612b0181e86",
       "metadata": {
-        "timestamp": "2026-03-02T13:44:06.019734",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 16548,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T13:44:06.024447"
-    },
-    {
-      "revision_id": "48a1dbcb-16f0-49a5-b430-8eeed5f1aed2",
-      "metadata": {
-        "timestamp": "2026-03-02T12:17:05.919269",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 16192,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T12:17:05.924674"
-    },
-    {
-      "revision_id": "62e6f236-8be7-4a96-b60c-ee097b26c6a3",
-      "metadata": {
-        "timestamp": "2026-03-02T09:57:56.644484",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 14931,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:57:56.646481"
-    },
-    {
-      "revision_id": "d343cee7-d0eb-47ed-b7c6-b693d1b6a87c",
-      "metadata": {
-        "timestamp": "2026-03-02T09:57:30.954457",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 14929,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:57:30.960443"
-    },
-    {
-      "revision_id": "956a794b-3d1c-4406-a832-6a714508b4b7",
-      "metadata": {
-        "timestamp": "2026-03-02T09:55:51.730192",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 12365,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:55:51.737092"
-    },
-    {
-      "revision_id": "5cf06b22-5de5-46ff-a198-e46f03fd1895",
-      "metadata": {
-        "timestamp": "2026-03-02T09:54:26.395243",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 12341,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:54:26.400135"
-    },
-    {
-      "revision_id": "a0faf1c4-2c78-4af1-9e06-971193485519",
-      "metadata": {
-        "timestamp": "2026-03-02T09:53:43.869803",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 12228,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:53:43.876718"
-    },
-    {
-      "revision_id": "b64b49ba-650d-487d-bdde-e63e9f688632",
-      "metadata": {
-        "timestamp": "2026-03-02T09:16:53.477352",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 12086,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:16:53.482355"
-    },
-    {
-      "revision_id": "95ae4805-7411-4fb6-a952-3209ae6e2197",
-      "metadata": {
-        "timestamp": "2026-03-02T09:15:50.454693",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 12110,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:15:50.458644"
-    },
-    {
-      "revision_id": "1d7a6f59-773f-405f-9acc-bf268d55ca25",
-      "metadata": {
-        "timestamp": "2026-03-02T09:14:36.265144",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 12086,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:14:36.271065"
-    },
-    {
-      "revision_id": "a685ad58-06d2-4562-a4d4-a7b6761d7541",
-      "metadata": {
-        "timestamp": "2026-03-02T09:11:04.248706",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 11962,
-        "is_reverted": false,
-        "git_branch_name": "main",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:11:04.253697"
-    },
-    {
-      "revision_id": "309c2f4d-3d6a-4422-90af-3e0f7fa53400",
-      "metadata": {
-        "timestamp": "2026-03-02T09:07:29.824187",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 11911,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:07:29.830201"
-    },
-    {
-      "revision_id": "f7b5f146-19e5-4edd-b3c4-18daa8b87bd1",
-      "metadata": {
-        "timestamp": "2026-03-02T09:07:16.684432",
-        "type": "cache_version",
-        "source": "manual_save",
-        "size": 11911,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": null
-      },
-      "saved_at": "2026-03-02T09:07:16.691409"
-    },
-    {
-      "revision_id": "b7c30be7-0528-441a-9067-a6df1b17f8d8",
-      "metadata": {
-        "timestamp": "2026-03-02T07:54:18.415481",
+        "timestamp": "2026-03-01T12:22:14.049546",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 11887,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": ""
-      },
-      "saved_at": "2026-03-02T07:54:18.417180"
-    },
-    {
-      "revision_id": "e45e1c37-0041-4818-911c-f20d7befe2d1",
-      "metadata": {
-        "timestamp": "2026-03-02T07:54:04.826014",
-        "type": "cache_version",
-        "source": "ToolTextFileEdit",
-        "size": 11627,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": ""
-      },
-      "saved_at": "2026-03-02T07:54:04.829546"
-    },
-    {
-      "revision_id": "d0e2056d-5510-48cb-9c43-6087783e7841",
-      "metadata": {
-        "timestamp": "2026-03-02T07:54:00.379476",
-        "type": "cache_version",
-        "source": "ToolTextFileEdit",
-        "size": 11594,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": ""
-      },
-      "saved_at": "2026-03-02T07:54:00.381216"
-    },
-    {
-      "revision_id": "5009d4de-3cd2-4720-9abe-49ba221326b9",
-      "metadata": {
-        "timestamp": "2026-03-02T07:53:50.931234",
-        "type": "cache_version",
-        "source": "ToolTextFileEdit",
-        "size": 11286,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": ""
-      },
-      "saved_at": "2026-03-02T07:53:50.934684"
-    },
-    {
-      "revision_id": "7830dfe2-0041-4f66-b2cb-350f6523146c",
-      "metadata": {
-        "timestamp": "2026-03-02T07:53:45.992047",
-        "type": "cache_version",
-        "source": "ToolTextFileEdit",
-        "size": 10823,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": ""
-      },
-      "saved_at": "2026-03-02T07:53:45.996329"
-    },
-    {
-      "revision_id": "b8ec5bf9-9265-4e9a-b3d5-448923f1d67b",
-      "metadata": {
-        "timestamp": "2026-03-02T07:53:38.929560",
-        "type": "cache_version",
-        "source": "ToolTextFileEdit",
-        "size": 10644,
-        "is_reverted": false,
-        "git_branch_name": "master",
-        "agent_name": "Cody",
-        "description": ""
-      },
-      "saved_at": "2026-03-02T07:53:38.992980"
-    },
-    {
-      "revision_id": "081f451a-c379-430c-bab3-4b5bf8a604cd",
-      "metadata": {
-        "timestamp": "2026-03-01T16:24:13.545821",
-        "type": "cache_version",
-        "source": "ToolTextFileEdit",
-        "size": 10571,
+        "size": 7462,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T16:24:13.554196"
+      "saved_at": "2026-03-01T12:22:14.049546"
     },
     {
-      "revision_id": "785f7f23-3044-4ee8-8dc1-db9d3b5a223d",
+      "revision_id": "3a24b8c2-0059-4ac1-94a2-d77583b53970",
       "metadata": {
-        "timestamp": "2026-03-01T16:24:09.479518",
+        "timestamp": "2026-03-01T12:09:36.203946",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 10362,
+        "size": 7432,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T16:24:09.481899"
+      "saved_at": "2026-03-01T12:09:36.203946"
     },
     {
-      "revision_id": "8fe94c49-4235-4d5e-82b1-39370629b0ae",
+      "revision_id": "e19b48a3-be7a-4c8c-bd0a-223ae12a7387",
       "metadata": {
-        "timestamp": "2026-03-01T16:03:00.425241",
+        "timestamp": "2026-03-01T12:09:26.360402",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 10326,
+        "size": 6932,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T16:03:00.449057"
+      "saved_at": "2026-03-01T12:09:26.360402"
     },
     {
-      "revision_id": "49f2ca65-7060-4355-ae6b-6234701f89ae",
+      "revision_id": "715d78ba-aa88-4210-80cf-44ed0ebc9cdd",
       "metadata": {
-        "timestamp": "2026-03-01T16:02:53.755427",
+        "timestamp": "2026-03-01T12:09:20.364161",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 10299,
+        "size": 6722,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T16:02:53.766203"
+      "saved_at": "2026-03-01T12:09:20.364799"
     },
     {
-      "revision_id": "f1c0dd45-81fb-4042-a75c-0ce55e9ee491",
+      "revision_id": "00337738-d90f-48da-ac4b-592bf9e7b066",
       "metadata": {
-        "timestamp": "2026-03-01T16:02:32.251500",
+        "timestamp": "2026-03-01T12:09:15.632377",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 9271,
+        "size": 6654,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T16:02:32.255574"
+      "saved_at": "2026-03-01T12:09:15.632377"
     },
     {
-      "revision_id": "a849211c-ebf1-402a-9be0-16353862ba72",
+      "revision_id": "2cfaee03-1d46-4186-b2ec-3802d9e0dd3c",
       "metadata": {
-        "timestamp": "2026-03-01T16:02:28.688302",
+        "timestamp": "2026-03-01T12:09:10.176984",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 9258,
+        "size": 6557,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T16:02:28.697945"
+      "saved_at": "2026-03-01T12:09:10.176984"
     },
     {
-      "revision_id": "3acf8510-781a-4c6d-a854-c7631cee5c5e",
+      "revision_id": "aaee6b9f-9c5a-465b-84bf-ab445714201d",
       "metadata": {
-        "timestamp": "2026-03-01T16:02:25.145401",
+        "timestamp": "2026-03-01T11:47:04.279582",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 9240,
+        "size": 6546,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T16:02:25.149058"
+      "saved_at": "2026-03-01T11:47:04.279582"
     },
     {
-      "revision_id": "81ba1b72-d1be-44ec-9c91-f392742313e9",
+      "revision_id": "95cc1631-3d42-4fcd-b71d-474232754634",
       "metadata": {
-        "timestamp": "2026-03-01T12:47:55.054288",
+        "timestamp": "2026-03-01T10:51:25.269130",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 8542,
+        "size": 5218,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T12:47:55.055978"
+      "saved_at": "2026-03-01T10:51:25.269130"
     },
     {
-      "revision_id": "729d72aa-f7df-4e7b-a9bb-b08b0c34db92",
+      "revision_id": "5996aafb-c522-467d-925d-247954cb6599",
       "metadata": {
-        "timestamp": "2026-03-01T12:47:50.779509",
+        "timestamp": "2026-03-01T09:41:35.998536",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 8423,
+        "size": 4625,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T12:47:50.785045"
+      "saved_at": "2026-03-01T09:41:35.998536"
     },
     {
-      "revision_id": "57b80a82-24f8-4c11-9629-888226430421",
+      "revision_id": "3437ade4-0432-48ae-bd8f-49f1d37aa33b",
       "metadata": {
-        "timestamp": "2026-03-01T12:47:42.477670",
+        "timestamp": "2026-03-01T09:19:54.410915",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 8363,
+        "size": 977,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T12:47:42.483693"
+      "saved_at": "2026-03-01T09:19:54.410915"
     },
     {
-      "revision_id": "6d618d25-ebc9-4640-94f9-2d7d1b7371f0",
+      "revision_id": "ed7de79d-19bc-4e3f-aa06-a8b2d57e6029",
       "metadata": {
-        "timestamp": "2026-03-01T12:47:36.140664",
+        "timestamp": "2026-03-01T09:07:30.469568",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 8326,
+        "size": 859,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
         "description": ""
       },
-      "saved_at": "2026-03-01T12:47:36.147114"
+      "saved_at": "2026-03-01T09:07:30.469568"
     },
     {
-      "revision_id": "85a44ec6-3d42-4568-81a6-8ccdefcb8458",
+      "revision_id": "bf450d1e-95b5-43de-afef-7fc20f38cdf1",
       "metadata": {
-        "timestamp": "2026-03-01T12:22:14.050546",
+        "timestamp": "2026-03-01T09:07:30.458626",
         "type": "cache_version",
         "source": "ToolTextFileEdit",
-        "size": 7276,
+        "size": 0,
         "is_reverted": false,
         "git_branch_name": "",
         "agent_name": "Cody",
-        "description": ""
+        "description": null
       },
-      "saved_at": "2026-03-01T12:22:14.055064"
+      "saved_at": "2026-03-01T09:07:30.458626"
     }
   ]
 }
