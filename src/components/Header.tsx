@@ -4,12 +4,12 @@ import { useSimulationStore } from '../store';
 const ASSETS = ['BTC/USD', 'ETH/USD', 'EUR/USD'] as const;
 
 // ── Rank helper ────────────────────────────────────────────────────────────────
-function getRank(profit: number): { label: string; gradient: string; glow: string } {
-  if (profit < 0)       return { label: 'Rekt 💀',               gradient: 'from-[#ff4d4d] to-[#ff0000]',   glow: 'rgba(255,77,77,0.35)'   };
-  if (profit <= 1000)   return { label: 'Paper Trader 📝',        gradient: 'from-[#a78bfa] to-[#7c3aed]',   glow: 'rgba(167,139,250,0.35)' };
-  if (profit <= 10000)  return { label: 'Crypto Degen 🎰',        gradient: 'from-[#f59e0b] to-[#d97706]',   glow: 'rgba(245,158,11,0.35)'  };
-  if (profit <= 50000)  return { label: 'Quant Intern 💻',        gradient: 'from-[#00ff88] to-[#00cc6a]',   glow: 'rgba(0,255,136,0.35)'   };
-  return                       { label: 'Wall Street Whale 🐳',   gradient: 'from-[#00d4ff] to-[#0099cc]',   glow: 'rgba(0,212,255,0.45)'   };
+function getRank(profit: number): { label: string; color: string; glow: string } {
+  if (profit < 0)      return { label: 'Rekt 💀',             color: '#ff4d4d', glow: 'rgba(255,77,77,0.4)'    };
+  if (profit <= 1000)  return { label: 'Paper Trader 📝',     color: '#a78bfa', glow: 'rgba(167,139,250,0.4)'  };
+  if (profit <= 10000) return { label: 'Crypto Degen 🎰',     color: '#f59e0b', glow: 'rgba(245,158,11,0.4)'   };
+  if (profit <= 50000) return { label: 'Quant Intern 💻',     color: '#00ff88', glow: 'rgba(0,255,136,0.4)'    };
+  return                      { label: 'Wall Street Whale 🐳', color: '#00d4ff', glow: 'rgba(0,212,255,0.4)'   };
 }
 
 export default function Header() {
@@ -58,26 +58,18 @@ export default function Header() {
           onMouseLeave={() => setRankTooltip(false)}
         >
           <div
-            className={`
-              flex items-center gap-1.5 px-3 py-1 rounded-full
-              bg-gradient-to-r ${rank.gradient} bg-opacity-15
-              border cursor-default select-none
-              transition-all duration-300
-            `}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full border cursor-default select-none transition-all duration-300"
             style={{
-              background: `linear-gradient(135deg, ${rank.gradient.includes('ff4d4d') ? 'rgba(255,77,77,0.12)' : rank.gradient.includes('a78bfa') ? 'rgba(167,139,250,0.12)' : rank.gradient.includes('f59e0b') ? 'rgba(245,158,11,0.12)' : rank.gradient.includes('00ff88') ? 'rgba(0,255,136,0.12)' : 'rgba(0,212,255,0.12)'}, transparent)`,
-              borderColor: rank.glow.replace('0.35', '0.4').replace('0.45', '0.5'),
-              boxShadow: `0 0 12px ${rank.glow}, inset 0 0 8px ${rank.glow.replace('0.35', '0.06').replace('0.45', '0.08')}`,
+              background: `linear-gradient(135deg, ${rank.color}25, transparent)`,
+              borderColor: rank.color,
+              boxShadow: `0 0 12px ${rank.glow}`,
             }}
           >
-            {/* Gradient text */}
             <span
               className="text-[11px] font-bold tracking-wide"
               style={{
-                background: `linear-gradient(90deg, ${rank.gradient.includes('ff4d4d') ? '#ff4d4d, #ff8080' : rank.gradient.includes('a78bfa') ? '#a78bfa, #c4b5fd' : rank.gradient.includes('f59e0b') ? '#f59e0b, #fcd34d' : rank.gradient.includes('00ff88') ? '#00ff88, #6effc8' : '#00d4ff, #67e8f9'})`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                color: rank.color,
+                textShadow: `0 0 8px ${rank.glow}`,
               }}
             >
               {rank.label}
