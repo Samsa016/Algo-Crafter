@@ -3,14 +3,25 @@ import { useSimulationStore } from '../store';
 
 const ASSETS = ['BTC/USD', 'ETH/USD', 'EUR/USD'] as const;
 
+// ── Rank helper ────────────────────────────────────────────────────────────────
+function getRank(profit: number): { label: string; gradient: string; glow: string } {
+  if (profit < 0)       return { label: 'Rekt 💀',               gradient: 'from-[#ff4d4d] to-[#ff0000]',   glow: 'rgba(255,77,77,0.35)'   };
+  if (profit <= 1000)   return { label: 'Paper Trader 📝',        gradient: 'from-[#a78bfa] to-[#7c3aed]',   glow: 'rgba(167,139,250,0.35)' };
+  if (profit <= 10000)  return { label: 'Crypto Degen 🎰',        gradient: 'from-[#f59e0b] to-[#d97706]',   glow: 'rgba(245,158,11,0.35)'  };
+  if (profit <= 50000)  return { label: 'Quant Intern 💻',        gradient: 'from-[#00ff88] to-[#00cc6a]',   glow: 'rgba(0,255,136,0.35)'   };
+  return                       { label: 'Wall Street Whale 🐳',   gradient: 'from-[#00d4ff] to-[#0099cc]',   glow: 'rgba(0,212,255,0.45)'   };
+}
+
 export default function Header() {
   const {
     balance, assets, asset, currentPrice,
     isRunning, toggleSimulation, deposit, setAsset,
+    totalAllTimeProfit,
   } = useSimulationStore();
 
   const [showDeposit, setShowDeposit] = useState(false);
   const [depositAmount, setDepositAmount] = useState(1000);
+  const [rankTooltip, setRankTooltip] = useState(false);
 
   // Only reflect the active asset's units in equity
   const activeAssets = assets[asset] ?? 0;
@@ -18,6 +29,10 @@ export default function Header() {
 
   const balanceColor = balance >= 10000 ? 'text-[#00ff88]' : 'text-[#ff4d4d]';
   const equityColor  = equity  >= 10000 ? 'text-[#00ff88]' : 'text-[#ff4d4d]';
+
+  const rank = getRank(totalAllTimeProfit);
+  const pnlColor = totalAllTimeProfit >= 0 ? '#00ff88' : '#ff4d4d';
+  const pnlSign  = totalAllTimeProfit >= 0 ? '+' : '';
 
   function handleDeposit() {
     if (depositAmount > 0) {
@@ -30,11 +45,67 @@ export default function Header() {
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-[#161b22]/80 backdrop-blur-md border-b border-white/10 relative z-50">
 
-      {/* ── Left: Logo + Asset Switcher ── */}
+      {/* ── Left: Logo + Rank Badge + Asset Switcher ── */}
       <div className="flex items-center gap-4">
         <span className="text-xl font-bold tracking-widest text-white uppercase">
           Algo<span className="text-[#00ff88]">-Crafter</span>
         </span>
+
+        {/* Rank Badge */}
+        <div
+          className="relative"
+          onMouseEnter={() => setRankTooltip(true)}
+          onMouseLeave={() => setRankTooltip(false)}
+        >
+          <div
+            className={`
+              flex items-center gap-1.5 px-3 py-1 rounded-full
+              bg-gradient-to-r ${rank.gradient} bg-opacity-15
+              border cursor-default select-none
+              transition-all duration-300
+            `}
+            style={{
+              background: `linear-gradient(135deg, ${rank.gradient.includes('ff4d4d') ? 'rgba(255,77,77,0.12)' : rank.gradient.includes('a78bfa') ? 'rgba(167,139,250,0.12)' : rank.gradient.includes('f59e0b') ? 'rgba(245,158,11,0.12)' : rank.gradient.includes('00ff88') ? 'rgba(0,255,136,0.12)' : 'rgba(0,212,255,0.12)'}, transparent)`,
+              borderColor: rank.glow.replace('0.35', '0.4').replace('0.45', '0.5'),
+              boxShadow: `0 0 12px ${rank.glow}, inset 0 0 8px ${rank.glow.replace('0.35', '0.06').replace('0.45', '0.08')}`,
+            }}
+          >
+            {/* Gradient text */}
+            <span
+              className="text-[11px] font-bold tracking-wide"
+              style={{
+                background: `linear-gradient(90deg, ${rank.gradient.includes('ff4d4d') ? '#ff4d4d, #ff8080' : rank.gradient.includes('a78bfa') ? '#a78bfa, #c4b5fd' : rank.gradient.includes('f59e0b') ? '#f59e0b, #fcd34d' : rank.gradient.includes('00ff88') ? '#00ff88, #6effc8' : '#00d4ff, #67e8f9'})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              {rank.label}
+            </span>
+          </div>
+
+          {/* Tooltip */}
+          {rankTooltip && (
+            <div
+              className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 whitespace-nowrap px-3 py-2 rounded-lg text-[11px] font-mono border"
+              style={{
+                background: '#0d1117',
+                borderColor: 'rgba(255,255,255,0.1)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+              }}
+            >
+              <p className="text-white/40 uppercase tracking-widest text-[9px] mb-0.5">All-Time P&L</p>
+              <p className="font-bold" style={{ color: pnlColor }}>
+                {pnlSign}{totalAllTimeProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+              </p>
+              {/* Arrow */}
+              <div
+                className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 border-l border-t"
+                style={{ background: '#0d1117', borderColor: 'rgba(255,255,255,0.1)' }}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Asset dropdown */}
         <div className="relative">

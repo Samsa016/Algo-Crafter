@@ -124,6 +124,7 @@ interface SimulationState {
 
   activePositions: Record<string, ActivePosition>;
   recoveryModes: Record<string, ActivePosition>;
+  totalAllTimeProfit: number;
 
   toggleSimulation: () => void;
   tick: () => void;
@@ -174,6 +175,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   activePositions: {},
   recoveryModes: {},
   backtestResult: null,
+  totalAllTimeProfit: 0,
 
   toggleSimulation: () =>
     set((state) => ({ isRunning: !state.isRunning })),
@@ -246,6 +248,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       let newAverageBuyPrice = state.averageBuyPrice;
       const newLogs: TradeLog[] = [];
       const newChartTrades: ChartTrade[] = [];
+      let tickRealizedProfit = 0;
 
       const newActive  = { ...state.activePositions };
       const newRecovery = { ...state.recoveryModes };
@@ -342,6 +345,10 @@ export const useSimulationStore = create<SimulationState>((set) => ({
           newAssets[state.asset] = parseFloat((currentAssetUnits - sellUnits).toFixed(8));
           newBalance = parseFloat((newBalance + revenue).toFixed(2));
 
+          // Accumulate realized profit for this sell
+          const costBasis = sellUnits * (newAverageBuyPrice > 0 ? newAverageBuyPrice : price);
+          tickRealizedProfit += parseFloat((revenue - costBasis).toFixed(2));
+
           // Reset averageBuyPrice on full exit
           if (pct === 100) newAverageBuyPrice = 0;
 
@@ -385,18 +392,19 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       ];
 
       return {
-        currentPrice:    price,
-        trailingHigh:    currentTrailingHigh,
-        trailingLow:     currentTrailingLow,
-        averageBuyPrice: newAverageBuyPrice,
-        balance:         newBalance,
-        assets:          newAssets,
-        priceHistory:    [...state.priceHistory, newCandle].slice(-HISTORY_CAP),
-        logs:            allLogs,
-        chartTrades:     updatedChartTrades,
-        activePositions: newActive,
-        recoveryModes:   newRecovery,
-        connections:     state.connections,
+        currentPrice:       price,
+        trailingHigh:       currentTrailingHigh,
+        trailingLow:        currentTrailingLow,
+        averageBuyPrice:    newAverageBuyPrice,
+        balance:            newBalance,
+        assets:             newAssets,
+        priceHistory:       [...state.priceHistory, newCandle].slice(-HISTORY_CAP),
+        logs:               allLogs,
+        chartTrades:        updatedChartTrades,
+        activePositions:    newActive,
+        recoveryModes:      newRecovery,
+        connections:        state.connections,
+        totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2)),
       };
     }),
     
@@ -530,13 +538,15 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
     const startEq   = 10000;
     const endEq     = vBalance + (vAssets * vPrice);
+    const netProfit = parseFloat((endEq - startEq).toFixed(2));
     const holdReturn = parseFloat(((vPrice - startPrice) / startPrice * 100).toFixed(2));
 
     return {
+      totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + netProfit).toFixed(2)),
       backtestResult: {
         startEquity:  parseFloat(startEq.toFixed(2)),
         endEquity:    parseFloat(endEq.toFixed(2)),
-        netProfit:    parseFloat((endEq - startEq).toFixed(2)),
+        netProfit,
         totalTrades:  tradesCount,
         ticks,
         startPrice:   parseFloat(startPrice.toFixed(decimals)),
