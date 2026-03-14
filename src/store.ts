@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getDCATemplate } from './templates';
+import { getDCATemplate, getGridTemplate, getGuardTemplate } from './templates';
 
 // ─── Web Audio SFX ────────────────────────────────────────────────────────────
 
@@ -90,6 +90,8 @@ export interface BacktestResult {
   netProfit: number;
   totalTrades: number;
   ticks: number;
+  startPrice: number;
+  holdReturn: number;  // % return of buy-and-hold over the same period
 }
 
 // ─── Новые интерфейсы для учета позиций ───
@@ -136,7 +138,7 @@ interface SimulationState {
   removeConnection: (fromId: string, toId: string) => void;
   removeNode: (id: string) => void;
   deposit: (amount: number) => void;
-  loadTemplate: (type: 'DCA') => void;
+  loadTemplate: (type: 'DCA' | 'GRID' | 'GUARD') => void;
 
   backtestResult: BacktestResult | null;
   runBacktest: (ticks: number) => void;
@@ -278,7 +280,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         } else if (operator === 'drop' && dropPercent != null) {
           condMet = price <= currentTrailingHigh * (1 - dropPercent / 100);
         } else if (operator === 'rise' && risePercent != null) {
-          condMet = price >= currentTrailingLow * (1 + risePercent / 100);
+          const baseRisePrice = newAverageBuyPrice > 0 ? newAverageBuyPrice : currentTrailingLow;
+          condMet = price >= baseRisePrice * (1 + risePercent / 100);
         }
 
         if (!condMet) continue;
@@ -402,7 +405,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   runBacktest: (ticks) => set((state) => {
     let vBalance = 10000;
     let vAssets   = 0;
-    let vPrice    = state.currentPrice;
+    const startPrice = state.currentPrice;
+    let vPrice    = startPrice;
 
     let vActive:   Record<string, ActivePosition> = {};
     let vRecovery: Record<string, ActivePosition> = {};
@@ -450,7 +454,10 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         if (operator === 'lt'   && targetPrice != null) condMet = vPrice <= targetPrice;
         if (operator === 'gt'   && targetPrice != null) condMet = vPrice >= targetPrice;
         if (operator === 'drop' && dropPercent != null) condMet = vPrice <= vTrailingHigh * (1 - dropPercent / 100);
-        if (operator === 'rise' && risePercent != null) condMet = vPrice >= vTrailingLow  * (1 + risePercent  / 100);
+        if (operator === 'rise' && risePercent != null) {
+          const baseRisePrice = vAvgBuyPrice > 0 ? vAvgBuyPrice : vTrailingLow;
+          condMet = vPrice >= baseRisePrice * (1 + risePercent / 100);
+        }
 
         if (!condMet) continue;
         if (vRecovery[conn.toId]) continue;
@@ -520,8 +527,9 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       }
     }
 
-    const startEq = 10000;
-    const endEq   = vBalance + (vAssets * vPrice);
+    const startEq   = 10000;
+    const endEq     = vBalance + (vAssets * vPrice);
+    const holdReturn = parseFloat(((vPrice - startPrice) / startPrice * 100).toFixed(2));
 
     return {
       backtestResult: {
@@ -530,13 +538,18 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         netProfit:    parseFloat((endEq - startEq).toFixed(2)),
         totalTrades:  tradesCount,
         ticks,
+        startPrice:   parseFloat(startPrice.toFixed(2)),
+        holdReturn,
       }
     };
   }),
 
   loadTemplate: (type) => set((state) => {
-    if (type !== 'DCA') return {};
-    const template = getDCATemplate();
+    const template =
+      type === 'DCA'  ? getDCATemplate()  :
+      type === 'GRID' ? getGridTemplate() :
+      type === 'GUARD'? getGuardTemplate(): null;
+    if (!template) return {};
     // Offset each new node so it doesn't stack on top of existing ones
     const offset = state.nodes.length * 15;
     const adjustedNodes = template.nodes.map((n) => ({

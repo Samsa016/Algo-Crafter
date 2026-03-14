@@ -1,0 +1,16 @@
+{
+  "file_name": "src/index.css",
+  "revision_id": "040066af-900e-4bb6-a5e1-f2b24f326808",
+  "metadata": {
+    "timestamp": "2026-03-14T15:01:46.043661",
+    "type": "cache_version",
+    "source": "ToolTextFileEdit",
+    "size": 654,
+    "is_reverted": false,
+    "git_branch_name": "main",
+    "agent_name": "Cody",
+    "description": ""
+  },
+  "content": "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n* {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n  font-family: 'Inter', system-ui, -apple-system, sans-serif;\n  -webkit-font-smoothing: antialiased;\n}\n\n/* ── Drawdown heatmap pulse ─────────────────────────────────────────────── */\n@keyframes drawdown-pulse {\n  0%, 100% {\n    box-shadow:\n      inset 0 0 60px rgba(255, 77, 77, 0.15),\n      inset 0 0 120px rgba(255, 77, 77, 0.07),\n      0 0 30px rgba(255, 77, 77, 0.08);\n  }\n  50% {\n    box-shadow:\n      inset 0 0 80px rgba(255, 77, 77, 0.28),\n      inset 0 0 160px rgba(255, 77, 77, 0.13),\n      0 0 50px rgba(255, 77, 77, 0.15);\n  }\n}\n",
+  "saved_at": "2026-03-14T15:01:46.043661"
+}

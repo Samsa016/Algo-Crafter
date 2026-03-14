@@ -23,7 +23,12 @@ export default function MainArea() {
     currentPrice, isRunning, priceHistory, chartType, setChartType,
     simulationSpeed, setSimulationSpeed, chartTrades,
     timeframe, setTimeframe,
+    balance, assets, asset, totalDeposits,
   } = useSimulationStore();
+
+  // ── Drawdown heatmap ──────────────────────────────────────────────────────
+  const activeAssets = assets[asset] ?? 0;
+  const isDrawdown   = (balance + activeAssets * currentPrice) < totalDeposits;
 
   const TIMEFRAMES = ['1s', '1m', '5m', '1h'] as const;
 
@@ -541,7 +546,16 @@ const [activeTool, setActiveTool] = useState<Tool>('cursor');
 
   return (
     <main className="flex-1 flex flex-col p-6 min-h-0">
-      <div className="w-full h-full bg-[#161b22]/80 backdrop-blur-md border border-white/10 rounded-xl flex flex-col min-h-[400px] overflow-hidden">
+      <div
+        className="w-full h-full bg-[#161b22]/80 backdrop-blur-md border rounded-xl flex flex-col min-h-[400px] overflow-hidden transition-all duration-700"
+        style={{
+          borderColor: isDrawdown ? 'rgba(255,77,77,0.35)' : 'rgba(255,255,255,0.1)',
+          boxShadow: isDrawdown
+            ? 'inset 0 0 60px rgba(255,77,77,0.15), inset 0 0 120px rgba(255,77,77,0.07), 0 0 30px rgba(255,77,77,0.08)'
+            : 'inset 0 0 40px rgba(0,255,136,0.03)',
+          animation: isDrawdown ? 'drawdown-pulse 2.5s ease-in-out infinite' : 'none',
+        }}
+      >
 
         {/* Header row */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">

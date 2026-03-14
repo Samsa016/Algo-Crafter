@@ -411,10 +411,70 @@ export default function Sidebar() {
           <ConnectionLines dragState={dragState} />
 
           {nodes.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <p className="text-white/15 text-xs tracking-widest uppercase text-center leading-relaxed">
-                Spawn nodes above<br />drag to arrange<br />connect condition → action
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-5 pointer-events-none">
+              <p className="text-[9px] text-white/20 uppercase tracking-[0.2em] font-semibold mb-1">
+                ⚡ Quick Start
               </p>
+
+              {/* DCA card */}
+              <motion.button
+                className="pointer-events-auto w-full rounded-xl p-3 text-left border transition-colors"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(167,139,250,0.08), rgba(139,92,246,0.04))',
+                  borderColor: 'rgba(167,139,250,0.25)',
+                }}
+                whileHover={{ scale: 1.03, boxShadow: '0 0 24px rgba(167,139,250,0.25)' }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => loadTemplate('DCA')}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">📉</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-violet-300">DCA Bot</span>
+                </div>
+                <p className="text-[10px] text-white/35 leading-relaxed">
+                  Buy every 5% dip. Dollar-cost average into strength.
+                </p>
+              </motion.button>
+
+              {/* Grid card */}
+              <motion.button
+                className="pointer-events-auto w-full rounded-xl p-3 text-left border transition-colors"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,200,100,0.03))',
+                  borderColor: 'rgba(0,255,136,0.2)',
+                }}
+                whileHover={{ scale: 1.03, boxShadow: '0 0 24px rgba(0,255,136,0.18)' }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => loadTemplate('GRID')}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">📈</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[#00ff88]">Grid Scalper</span>
+                </div>
+                <p className="text-[10px] text-white/35 leading-relaxed">
+                  Sell 25% on every 2% rise. Harvest gains systematically.
+                </p>
+              </motion.button>
+
+              {/* Guard card */}
+              <motion.button
+                className="pointer-events-auto w-full rounded-xl p-3 text-left border transition-colors"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,77,77,0.07), rgba(200,50,50,0.03))',
+                  borderColor: 'rgba(255,77,77,0.22)',
+                }}
+                whileHover={{ scale: 1.03, boxShadow: '0 0 24px rgba(255,77,77,0.2)' }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => loadTemplate('GUARD')}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">🛡️</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[#ff4d4d]">Guard</span>
+                </div>
+                <p className="text-[10px] text-white/35 leading-relaxed">
+                  Exit 100% on a 10% crash. Protect capital automatically.
+                </p>
+              </motion.button>
             </div>
           )}
 
