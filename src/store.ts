@@ -24,8 +24,8 @@ function playSound(type: 'BUY' | 'SELL' | 'FAILED') {
 
   const now = audioCtx.currentTime;
   const tones = type === 'BUY'
-    ? [{ freq: 2637, delay: 0 }, { freq: 3136, delay: 0.07 }]   
-    : [{ freq: 2093, delay: 0 }, { freq: 2637, delay: 0.07 }];  
+    ? [{ freq: 2637, delay: 0 }, { freq: 3136, delay: 0.07 }]
+    : [{ freq: 2093, delay: 0 }, { freq: 2637, delay: 0.07 }];
 
   for (const { freq, delay } of tones) {
     const osc = audioCtx.createOscillator();
@@ -86,17 +86,7 @@ export interface ChartTrade {
   historyIndex: number;
 }
 
-export interface BacktestResult {
-  startEquity: number;
-  endEquity: number;
-  netProfit: number;
-  totalTrades: number;
-  ticks: number;
-  startPrice: number;
-  holdReturn: number;  // % return of buy-and-hold over the same period
-}
-
-// ─── Новые интерфейсы для учета позиций ───
+// ─── Position tracking ────────────────────────────────────────────────────────
 export interface ActivePosition {
   buyPrice: number;
   triggerPrice?: number;
@@ -127,9 +117,11 @@ interface SimulationState {
   activePositions: Record<string, ActivePosition>;
   recoveryModes: Record<string, ActivePosition>;
   totalAllTimeProfit: number;
+  activePulseNode: string | null;
 
   toggleSimulation: () => void;
   tick: () => void;
+  triggerPulse: (nodeId: string) => void;
   setChartType: (type: 'LINE' | 'CANDLE') => void;
   setSimulationSpeed: (speed: number) => void;
   setTimeframe: (tf: '1s' | '1m' | '5m' | '1h') => void;
@@ -142,10 +134,6 @@ interface SimulationState {
   removeNode: (id: string) => void;
   deposit: (amount: number) => void;
   loadTemplate: (type: 'DCA' | 'GRID' | 'GUARD') => void;
-
-  backtestResult: BacktestResult | null;
-  runBacktest: (ticks: number) => void;
-  clearBacktest: () => void;
 
   triggerShock: (type: 'MOON' | 'CRASH') => void;
 
@@ -162,7 +150,7 @@ const ASSET_BASE_PRICES: Record<string, number> = {
   'EUR/USD': 1.12,
 };
 
-export const useSimulationStore = create<SimulationState>((set) => ({
+export const useSimulationStore = create<SimulationState>((set, get) => ({
   balance: 10000,
   totalDeposits: 10000,
   assets: { 'BTC/USD': 0, 'ETH/USD': 0, 'EUR/USD': 0 },
@@ -182,12 +170,18 @@ export const useSimulationStore = create<SimulationState>((set) => ({
   logs: [],
   activePositions: {},
   recoveryModes: {},
-  backtestResult: null,
   totalAllTimeProfit: 0,
+  activePulseNode: null,
   isExportOpen: false,
 
   toggleSimulation: () =>
     set((state) => ({ isRunning: !state.isRunning })),
+
+  // ── Visual pulse: lights up the wire for 800ms ────────────────────────────
+  triggerPulse: (nodeId) => {
+    set({ activePulseNode: nodeId });
+    setTimeout(() => set({ activePulseNode: null }), 800);
+  },
 
   setChartType: (type) => set({ chartType: type }),
 
@@ -243,7 +237,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
       const price = parseFloat(close.toFixed(decimals));
 
-      // ── Step 3: Track trailing extremes ──────────────────────────────────
+      // ── Track trailing extremes ───────────────────────────────────────────
       let currentTrailingHigh = Math.max(state.trailingHigh, price);
       let currentTrailingLow  = Math.min(state.trailingLow,  price);
 
@@ -259,7 +253,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       const newChartTrades: ChartTrade[] = [];
       let tickRealizedProfit = 0;
 
-      const newActive  = { ...state.activePositions };
+      const newActive   = { ...state.activePositions };
       const newRecovery = { ...state.recoveryModes };
       // Track node XP gains this tick (nodeId → xp delta)
       const nodeXpGains: Record<string, number> = {};
@@ -314,8 +308,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
             continue;
           }
 
-          const prevUnits = newAssets[state.asset] || 0;
-          const newUnits  = amount / price;
+          const prevUnits  = newAssets[state.asset] || 0;
+          const newUnits   = amount / price;
           const totalUnits = parseFloat((prevUnits + newUnits).toFixed(8));
 
           newBalance = parseFloat((newBalance - amount).toFixed(2));
@@ -339,6 +333,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
           playSound('BUY');
           newLogs.push({ id: tradeId, message: `BUY $${amount} (${newUnits.toFixed(4)} ${state.asset}) @ $${price.toFixed(2)}`, time: timeStr, type: 'BUY' });
           newChartTrades.push({ id: tradeId, type: side, price, historyIndex: newCandleIndex });
+          // Trigger wire pulse animation
+          setTimeout(() => get().triggerPulse(conn.toId), 0);
 
           // Reset trailing extremes after buy
           currentTrailingHigh = price;
@@ -374,6 +370,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
           playSound('SELL');
           newLogs.push({ id: tradeId, message: `SELL ${pct}% (${sellUnits.toFixed(6)} ${state.asset}, $${revenue}) @ $${price.toFixed(2)}`, time: timeStr, type: 'SELL' });
           newChartTrades.push({ id: tradeId, type: side, price, historyIndex: newCandleIndex });
+          // Trigger wire pulse animation
+          setTimeout(() => get().triggerPulse(conn.toId), 0);
 
           // Block sell node until price recovers
           newRecovery[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
@@ -438,153 +436,6 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2)),
       };
     }),
-    
-  clearBacktest: () => set({ backtestResult: null }),
-  
-  runBacktest: (ticks) => set((state) => {
-    let vBalance = 10000;
-    let vAssets   = 0;
-    const startPrice = state.currentPrice;
-    let vPrice    = startPrice;
-
-    let vActive:   Record<string, ActivePosition> = {};
-    let vRecovery: Record<string, ActivePosition> = {};
-    let tradesCount = 0;
-
-    // Dynamic decimal precision mirrors tick()
-    const decimals = state.asset === 'EUR/USD' ? 5 : 2;
-
-    // ── Step 4: Trailing extremes + avg buy price ─────────────────────────
-    let vTrailingHigh = vPrice;
-    let vTrailingLow  = vPrice;
-    let vAvgBuyPrice  = 0;
-
-    for (let i = 0; i < ticks; i++) {
-      let change = 0;
-      if (state.asset === 'EUR/USD')      change = (Math.random() - 0.5) * 0.001;
-      else if (state.asset === 'ETH/USD') change = (Math.random() - 0.5) * 40;
-      else                                change = (Math.random() - 0.5) * 300;
-      vPrice = parseFloat(Math.max(0.0001, vPrice + change).toFixed(decimals));
-
-      // Track extremes each tick
-      vTrailingHigh = Math.max(vTrailingHigh, vPrice);
-      vTrailingLow  = Math.min(vTrailingLow,  vPrice);
-
-      // Recovery check
-      for (const nodeId in vRecovery) {
-        const pos = vRecovery[nodeId];
-        const trigger = pos.triggerPrice ?? pos.buyPrice;
-        const recovered = (pos.operator === 'lt' || pos.operator === 'drop')
-          ? vPrice > trigger
-          : vPrice < trigger;
-        if (recovered) delete vRecovery[nodeId];
-      }
-
-      for (const conn of state.connections) {
-        const condNode = state.nodes.find(n => n.id === conn.fromId);
-        const actNode  = state.nodes.find(n => n.id === conn.toId);
-        if (!condNode || !actNode) continue;
-
-        const { operator, targetPrice, dropPercent, risePercent } = condNode.data;
-        const { side, amount } = actNode.data;
-        if (!operator || !amount) continue;
-
-        // ── Condition evaluation (mirrors tick) ──────────────────────────
-        let condMet = false;
-        if (operator === 'lt'   && targetPrice != null) condMet = vPrice <= targetPrice;
-        if (operator === 'gt'   && targetPrice != null) condMet = vPrice >= targetPrice;
-        if (operator === 'drop' && dropPercent != null) condMet = vPrice <= vTrailingHigh * (1 - dropPercent / 100);
-        if (operator === 'rise' && risePercent != null) {
-          const baseRisePrice = vAvgBuyPrice > 0 ? vAvgBuyPrice : vTrailingLow;
-          condMet = vPrice >= baseRisePrice * (1 + risePercent / 100);
-        }
-
-        if (!condMet) continue;
-        if (vRecovery[conn.toId]) continue;
-
-        if (side === 'BUY') {
-          if (vActive[conn.toId]) continue;
-
-          if (amount <= vBalance) {
-            const prevUnits  = vAssets;
-            const newUnits   = amount / vPrice;
-            const totalUnits = prevUnits + newUnits;
-
-            vBalance -= amount;
-            vAssets   = totalUnits;
-            tradesCount++;
-
-            // Weighted average buy price
-            if (prevUnits <= 0 || vAvgBuyPrice <= 0) {
-              vAvgBuyPrice = vPrice;
-            } else {
-              vAvgBuyPrice = (vAvgBuyPrice * prevUnits + vPrice * newUnits) / totalUnits;
-            }
-
-            vActive[conn.toId] = { buyPrice: vPrice, triggerPrice: targetPrice, operator };
-
-            // Reset trailing extremes after buy
-            vTrailingHigh = vPrice;
-            vTrailingLow  = vPrice;
-          } else {
-            vRecovery[conn.toId] = { buyPrice: vPrice, triggerPrice: targetPrice, operator };
-          }
-
-        } else {
-          // ── SELL ────────────────────────────────────────────────────────
-          const pct       = Math.min(100, Math.max(1, amount));
-          const sellUnits = vAssets * (pct / 100);
-
-          // Nothing to sell
-          if (sellUnits <= 0.000001) continue;
-
-          // Profit Protection
-          if (vAvgBuyPrice > 0 && vPrice <= vAvgBuyPrice) continue;
-
-          vAssets  -= sellUnits;
-          vBalance += sellUnits * vPrice;
-          tradesCount++;
-
-          // Reset avg buy price on full exit
-          if (pct === 100) vAvgBuyPrice = 0;
-
-          vRecovery[conn.toId] = { buyPrice: vPrice, triggerPrice: targetPrice, operator };
-
-          // Reset trailing extremes after sell
-          vTrailingHigh = vPrice;
-          vTrailingLow  = vPrice;
-
-          for (const activeId in vActive) {
-            const pos = vActive[activeId];
-            if (vPrice > pos.buyPrice) {
-              delete vActive[activeId];
-            } else {
-              vRecovery[activeId] = pos;
-              delete vActive[activeId];
-            }
-          }
-        }
-      }
-    }
-
-    const startEq   = 10000;
-    const endEq     = vBalance + (vAssets * vPrice);
-    const netProfit = parseFloat((endEq - startEq).toFixed(2));
-    const holdReturn = parseFloat(((vPrice - startPrice) / startPrice * 100).toFixed(2));
-
-    return {
-      totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + netProfit).toFixed(2)),
-      backtestResult: {
-        startEquity:  parseFloat(startEq.toFixed(2)),
-        endEquity:    parseFloat(endEq.toFixed(2)),
-        netProfit,
-        totalTrades:  tradesCount,
-        ticks,
-        startPrice:   parseFloat(startPrice.toFixed(decimals)),
-        holdReturn,
-      }
-    };
-  }),
 
   // ── God Mode ──────────────────────────────────────────────────────────────
   triggerShock: (type) => set((state) => {
@@ -611,9 +462,9 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
   loadTemplate: (type) => set((state) => {
     const template =
-      type === 'DCA'  ? getDCATemplate()  :
-      type === 'GRID' ? getGridTemplate() :
-      type === 'GUARD'? getGuardTemplate(): null;
+      type === 'DCA'   ? getDCATemplate()   :
+      type === 'GRID'  ? getGridTemplate()  :
+      type === 'GUARD' ? getGuardTemplate() : null;
     if (!template) return {};
     // Offset each new node so it doesn't stack on top of existing ones
     const offset = state.nodes.length * 15;

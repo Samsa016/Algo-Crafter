@@ -352,7 +352,7 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
-  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, runBacktest, loadTemplate, openExport } = useSimulationStore();
+  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, loadTemplate, openExport } = useSimulationStore();
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
 
@@ -564,10 +564,11 @@ export default function Sidebar() {
       
       <div className="flex gap-2 shrink-0">
         <button
-          onClick={() => runBacktest(1000)}
-          className="flex-1 py-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 hover:border-violet-500/60 transition-all font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(167,139,250,0.1)]"
+          disabled
+          className="flex-1 py-3 rounded-xl bg-[#00d4ff]/5 border border-[#00d4ff]/20 text-[#00d4ff]/40 cursor-not-allowed font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2"
+          title="Coming soon"
         >
-          <span>⚡</span> Backtest
+          <span>👥</span> Social Feed
         </button>
         <button
           onClick={openExport}

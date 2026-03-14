@@ -2,6 +2,34 @@
   "file_name": "src/components/Sidebar.tsx",
   "revisions": [
     {
+      "revision_id": "4e88edb4-ea7a-47dc-974b-3f632a250ea7",
+      "metadata": {
+        "timestamp": "2026-03-14T18:45:44.217045",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 25887,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T18:45:44.220944"
+    },
+    {
+      "revision_id": "c356195f-0065-4917-bb80-82f0395fee0c",
+      "metadata": {
+        "timestamp": "2026-03-14T18:45:36.142854",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 25966,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T18:45:36.150051"
+    },
+    {
       "revision_id": "dfeaab9e-eee3-49a2-aaf5-16cba273d2dd",
       "metadata": {
         "timestamp": "2026-03-14T18:05:25.553179",

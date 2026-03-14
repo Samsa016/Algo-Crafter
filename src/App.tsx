@@ -4,7 +4,6 @@ import Header from './components/Header';
 import MainArea from './components/MainArea';
 import Sidebar from './components/Sidebar';
 import WelcomeModal from './components/WelcomeModal';
-import BacktestModal from './components/BacktestModal';
 import ExportModal from './components/ExportModal';
 
 export default function App() {
@@ -20,7 +19,6 @@ export default function App() {
     <div className="min-h-screen bg-[#0d1117] flex flex-col text-white">
       <Header />
       <WelcomeModal />
-      <BacktestModal />
       <ExportModal />
       <div className="flex flex-1 overflow-hidden">
         <MainArea />

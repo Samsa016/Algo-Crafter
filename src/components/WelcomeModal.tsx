@@ -117,21 +117,21 @@ const STEPS = [
   {
     id: 4,
     eyebrow: 'Step 3',
-    title: 'Stress-Test & Rank Up',
+    title: 'Rank Up & Copy Top Traders',
     accent: '#00d4ff',
     icon: '🏆',
     body: (
       <div className="space-y-4">
         <p className="text-white/60 text-sm leading-relaxed">
-          Hit <span className="text-[#00d4ff] font-semibold">Fast-Forward Backtest</span> to simulate thousands of ticks instantly and see your strategy's P&L — no waiting required.
+          Your <span className="text-[#00d4ff] font-semibold">All-Time P&L</span> earns you a rank — and unlocks the <span className="text-white font-semibold">Social Copy Trading Feed</span> where top strategies go live.
         </p>
         <div className="p-3 rounded-xl border border-[#00d4ff]/20 bg-[#00d4ff]/5 mb-1">
-          <p className="text-[#00d4ff] text-xs font-bold mb-1">🚀 Backtest Panel</p>
+          <p className="text-[#00d4ff] text-xs font-bold mb-1">👥 Social Feed <span className="text-[9px] font-normal text-[#00d4ff]/50 ml-1">— Coming Soon</span></p>
           <p className="text-white/50 text-[11px] leading-relaxed">
-            Choose 1K, 5K, or 10K ticks. Results show Net Profit, Total Trades, and vs. Buy-and-Hold return.
+            Browse real strategies from other traders. One click to copy their node graph and run it live in your own sandbox.
           </p>
         </div>
-        <p className="text-white/50 text-[11px] mb-1">Your <span className="text-white font-semibold">All-Time P&L</span> across all trades and backtests earns you a rank:</p>
+        <p className="text-white/50 text-[11px] mb-1">Your <span className="text-white font-semibold">All-Time P&L</span> across all live trades earns you a rank:</p>
         <div className="grid grid-cols-1 gap-1.5">
           {[
             { rank: 'Rekt 💀',               range: '< $0',          color: '#ff4d4d' },
