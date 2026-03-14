@@ -2,6 +2,76 @@
   "file_name": "src/components/Sidebar.tsx",
   "revisions": [
     {
+      "revision_id": "7c74a9b5-62bc-408f-a52d-03860456b4e1",
+      "metadata": {
+        "timestamp": "2026-03-14T18:52:31.960514",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 30531,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Jace",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T18:52:32.059524"
+    },
+    {
+      "revision_id": "9e133cc2-1afd-42c3-9e95-9d1a1119f868",
+      "metadata": {
+        "timestamp": "2026-03-14T18:52:01.388971",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 27697,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Jace",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T18:52:01.393423"
+    },
+    {
+      "revision_id": "ffb67ce8-d8fa-495f-9486-aa9607ccdab0",
+      "metadata": {
+        "timestamp": "2026-03-14T18:51:56.949230",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 27663,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Jace",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T18:51:56.951594"
+    },
+    {
+      "revision_id": "1240cfc0-47ea-4c62-8211-fd0eee13ae65",
+      "metadata": {
+        "timestamp": "2026-03-14T18:51:48.349627",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 27200,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Jace",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T18:51:48.352976"
+    },
+    {
+      "revision_id": "eb2054b0-d8b2-462e-b6b9-f7e1b9bae5cd",
+      "metadata": {
+        "timestamp": "2026-03-14T18:51:27.374167",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 26225,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Jace",
+        "description": ""
+      },
+      "saved_at": "2026-03-14T18:51:27.376229"
+    },
+    {
       "revision_id": "4e88edb4-ea7a-47dc-974b-3f632a250ea7",
       "metadata": {
         "timestamp": "2026-03-14T18:45:44.217045",

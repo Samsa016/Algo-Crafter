@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, useMotionValue } from 'framer-motion';
+import { motion, useMotionValue, AnimatePresence } from 'framer-motion';
 import { useSimulationStore, StrategyNode } from '../store';
+
+// ─── Social Feed Data ──────────────────────────────────────────────────────────
+const MOCK_FEED = [
+  '@whale_99 copied your strategy',
+  '@noob123 started following you',
+  'System: Strategy ranked up!',
+  '@quant_guy deployed to IQ Option',
+  '@alpha_bot mirrored your DCA',
+  'System: +12 new followers today',
+];
 
 // ─── Node Card ────────────────────────────────────────────────────────────────
 
@@ -289,7 +299,13 @@ function NodeCard({
 
 interface DragState { id: string; x: number; y: number; }
 
-function ConnectionLines({ dragState }: { dragState: DragState | null }) {
+function ConnectionLines({
+  dragState,
+  activePulseNode,
+}: {
+  dragState: DragState | null;
+  activePulseNode: string | null;
+}) {
   const { nodes, connections } = useSimulationStore();
 
   return (
@@ -305,6 +321,13 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <filter id="pulse-glow">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       {connections.map((conn) => {
         const from = nodes.find((n) => n.id === conn.fromId);
@@ -313,7 +336,6 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
 
         const NODE_W = 200;
         const NODE_H = 96;
-        // Use live drag position if this node is being dragged
         const fromX = dragState?.id === conn.fromId ? dragState.x : from.x;
         const fromY = dragState?.id === conn.fromId ? dragState.y : from.y;
         const toX = dragState?.id === conn.toId ? dragState.x : to.x;
@@ -324,24 +346,40 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
         const y2 = toY + NODE_H / 2;
         const cx = (x1 + x2) / 2;
 
+        const isPulsing =
+          activePulseNode === conn.fromId || activePulseNode === conn.toId;
+
         return (
           <g key={`${conn.fromId}-${conn.toId}`}>
+            {/* Glow layer */}
             <path
               d={`M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`}
               fill="none"
-              stroke="rgba(167,139,250,0.35)"
-              strokeWidth="5"
-              filter="url(#conn-glow)"
+              stroke={isPulsing ? 'rgba(0,255,136,0.5)' : 'rgba(167,139,250,0.35)'}
+              strokeWidth={isPulsing ? 8 : 5}
+              filter={isPulsing ? 'url(#pulse-glow)' : 'url(#conn-glow)'}
             />
+            {/* Main wire */}
             <path
               d={`M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`}
               fill="none"
-              stroke="#a78bfa"
-              strokeWidth="1.5"
-              strokeDasharray="6 3"
+              stroke={isPulsing ? '#00ff88' : '#a78bfa'}
+              strokeWidth={isPulsing ? 4 : 1.5}
+              strokeDasharray={isPulsing ? undefined : '6 3'}
+              filter={isPulsing ? 'drop-shadow(0 0 8px #00ff88)' : undefined}
             />
-            <circle cx={x2} cy={y2} r="3.5" fill="#a78bfa" />
-            <circle cx={x1} cy={y1} r="3" fill="#a78bfa" opacity="0.6" />
+            {/* End dot */}
+            <circle
+              cx={x2} cy={y2} r={isPulsing ? 5 : 3.5}
+              fill={isPulsing ? '#00ff88' : '#a78bfa'}
+              filter={isPulsing ? 'drop-shadow(0 0 6px #00ff88)' : undefined}
+            />
+            {/* Start dot */}
+            <circle
+              cx={x1} cy={y1} r={isPulsing ? 4 : 3}
+              fill={isPulsing ? '#00ff88' : '#a78bfa'}
+              opacity={isPulsing ? 1 : 0.6}
+            />
           </g>
         );
       })}
@@ -352,9 +390,26 @@ function ConnectionLines({ dragState }: { dragState: DragState | null }) {
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export default function Sidebar() {
-  const { nodes, logs, addNode, connectNodes, balance, assets, asset, currentPrice, totalDeposits, loadTemplate, openExport } = useSimulationStore();
+  const {
+    nodes, logs, addNode, connectNodes,
+    balance, assets, asset, currentPrice, totalDeposits,
+    loadTemplate, openExport, activePulseNode,
+  } = useSimulationStore();
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
+
+  // ── Social Feed state ──────────────────────────────────────────────────────
+  const [feedMsg, setFeedMsg] = useState(MOCK_FEED[0]);
+  const [feedKey, setFeedKey] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const next = MOCK_FEED[Math.floor(Math.random() * MOCK_FEED.length)];
+      setFeedMsg(next);
+      setFeedKey((k) => k + 1);
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
 
   function spawnNode(type: 'CONDITION' | 'ACTION') {
     const id = `${type}-${Date.now()}`;
@@ -430,7 +485,7 @@ export default function Sidebar() {
             if (pendingFrom) setPendingFrom(null);
           }}
         >
-          <ConnectionLines dragState={dragState} />
+          <ConnectionLines dragState={dragState} activePulseNode={activePulseNode} />
 
           {nodes.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-5 pointer-events-none">
@@ -562,21 +617,92 @@ export default function Sidebar() {
         );
       })()}
       
-      <div className="flex gap-2 shrink-0">
-        <button
-          disabled
-          className="flex-1 py-3 rounded-xl bg-[#00d4ff]/5 border border-[#00d4ff]/20 text-[#00d4ff]/40 cursor-not-allowed font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2"
-          title="Coming soon"
+      {/* ── Social Feed ── */}
+      <div
+        className="rounded-xl p-3 shrink-0 flex flex-col gap-2"
+        style={{
+          background: 'linear-gradient(135deg, rgba(0,212,255,0.04), rgba(0,255,136,0.03))',
+          border: '1px solid rgba(0,212,255,0.25)',
+          boxShadow: '0 0 20px rgba(0,212,255,0.08)',
+        }}
+      >
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {/* Live pulse dot */}
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ff88] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ff88]" />
+            </span>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">
+              Social Feed
+            </p>
+          </div>
+          <button
+            onClick={openExport}
+            className="text-[9px] px-2 py-1 rounded bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/30 hover:bg-[#3b82f6]/20 transition-all uppercase tracking-widest font-bold"
+          >
+            🐍 Export
+          </button>
+        </div>
+
+        {/* Ticker */}
+        <div
+          className="relative overflow-hidden rounded-lg px-3 py-2"
+          style={{ background: 'rgba(0,0,0,0.3)', minHeight: 36 }}
         >
-          <span>👥</span> Social Feed
-        </button>
-        <button
-          onClick={openExport}
-          className="flex-1 py-3 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/30 text-[#60a5fa] hover:bg-[#3b82f6]/20 hover:border-[#3b82f6]/60 transition-all font-bold tracking-widest uppercase text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-        >
-          <span>🐍</span> Export
-        </button>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={feedKey}
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -20, opacity: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="flex items-center gap-2"
+            >
+              <span className="text-[10px]">
+                {feedMsg.startsWith('@') ? '👤' : feedMsg.startsWith('System') ? '⚡' : '📡'}
+              </span>
+              <span
+                className="text-[11px] font-mono font-semibold truncate"
+                style={{
+                  color: feedMsg.startsWith('System') ? '#00ff88' : '#00d4ff',
+                  textShadow: feedMsg.startsWith('System')
+                    ? '0 0 8px rgba(0,255,136,0.5)'
+                    : '0 0 8px rgba(0,212,255,0.5)',
+                }}
+              >
+                {feedMsg}
+              </span>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
+
+      {/* ── IQ Option CTA ── */}
+      <a
+        href="https://iqoption.com/en"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 block w-full py-4 rounded-xl text-center font-black uppercase tracking-widest text-sm transition-all active:scale-95 select-none"
+        style={{
+          background: 'linear-gradient(135deg, #f97316, #dc2626)',
+          boxShadow: '0 0 30px rgba(249,115,22,0.5), 0 0 60px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+          color: '#fff',
+          textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.15)',
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+            '0 0 45px rgba(249,115,22,0.7), 0 0 80px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLAnchorElement).style.boxShadow =
+            '0 0 30px rgba(249,115,22,0.5), 0 0 60px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.15)';
+        }}
+      >
+        🚀 TRADE LIVE ON IQ OPTION
+      </a>
 
       {/* ── Strategy Log ── */}
       <div className="bg-[#161b22]/80 backdrop-blur-md border border-white/10 rounded-xl p-4 flex flex-col h-[28vh] min-h-[140px]">
