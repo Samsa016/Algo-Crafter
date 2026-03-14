@@ -94,6 +94,9 @@ export default function MainArea() {
   // Mouse position stored in a ref — avoids re-renders on every mousemove
   const mousePosRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Measure tool: tracks drag start point
+  const measureStartRef = useRef<{ x: number; y: number; price: number; vi: number } | null>(null);
+
   // Stable refs for toX/toY so click handler & spawner can use them
   const toXRef   = useRef<((i: number) => number) | null>(null);
   const toYRef   = useRef<((p: number) => number) | null>(null);
@@ -108,6 +111,7 @@ export default function MainArea() {
   const chartTradesRef     = useRef(chartTrades);
   const timeframeRef       = useRef(timeframe);
   const zoomLevelRef       = useRef(zoomLevel);
+  const assetRef           = useRef(asset);
   visibleHistoryRef.current  = visibleHistory;
   aggregatedRef.current      = aggregated;
   priceHistoryRef.current    = priceHistory;
@@ -116,6 +120,7 @@ export default function MainArea() {
   chartTradesRef.current     = chartTrades;
   timeframeRef.current       = timeframe;
   zoomLevelRef.current       = zoomLevel;
+  assetRef.current           = asset;
 
   // ─── Core draw function (stable — never recreated) ────────────────────────
   const draw = useCallback(() => {
@@ -184,12 +189,14 @@ export default function MainArea() {
     fromYRef.current = fromY;
 
     // ── Y-axis price labels ──────────────────────────────────────────────────
+    // Dynamic precision: EUR/USD needs 5 decimal places, others 2
+    const decimals = assetRef.current === 'EUR/USD' ? 5 : 2;
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.font      = '10px monospace';
     ctx.textAlign = 'right';
     for (let i = 0; i <= rows; i++) {
       const p = pMin + (pSpan * (rows - i)) / rows;
-      ctx.fillText(`$${p.toFixed(1)}`, PAD.left - 6, PAD.top + (i / rows) * chartH + 4);
+      ctx.fillText(`$${p.toFixed(decimals)}`, PAD.left - 6, PAD.top + (i / rows) * chartH + 4);
     }
     ctx.textAlign = 'left';
 
@@ -373,7 +380,7 @@ export default function MainArea() {
       ctx.fillStyle   = '#a78bfa';
       ctx.font        = '10px monospace';
       ctx.textAlign   = 'left';
-      ctx.fillText(`$${price.toFixed(2)}`, W - PAD.right + 5, y + 4);
+      ctx.fillText(`$${price.toFixed(decimals)}`, W - PAD.right + 5, y + 4);
       ctx.shadowBlur  = 6;
     }
     ctx.setLineDash([]);
@@ -398,7 +405,7 @@ export default function MainArea() {
         ctx.fillStyle = 'rgba(255,255,255,0.85)';
         ctx.font      = '10px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(`$${hoverPrice.toFixed(2)}`, W - PAD.right + 5, my + 4);
+        ctx.fillText(`$${hoverPrice.toFixed(decimals)}`, W - PAD.right + 5, my + 4);
       }
 
       ctx.beginPath();
@@ -412,6 +419,60 @@ export default function MainArea() {
     }
 
     // ── Particles ─────────────────────────────────────────────────────────────
+    // ── Measure tool overlay ──────────────────────────────────────────────────
+    const ms = measureStartRef.current;
+    if (activeToolRef.current === 'measure' && ms && mp) {
+      const rx = Math.min(ms.x, mp.x);
+      const ry = Math.min(ms.y, mp.y);
+      const rw = Math.abs(mp.x - ms.x);
+      const rh = Math.abs(mp.y - ms.y);
+
+      ctx.save();
+
+      // Semi-transparent fill
+      ctx.fillStyle = 'rgba(0, 150, 255, 0.1)';
+      ctx.fillRect(rx, ry, rw, rh);
+
+      // Dashed border
+      ctx.strokeStyle = 'rgba(0, 150, 255, 0.6)';
+      ctx.lineWidth   = 1;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.setLineDash([]);
+
+      // Badge: % change + bar count
+      const endPrice  = fromY(mp.y);
+      const pctChange = ((endPrice - ms.price) / ms.price) * 100;
+      const pctStr    = (pctChange >= 0 ? '+' : '') + pctChange.toFixed(2) + '%';
+      const PAD_L     = 56, PAD_R = 64;
+      const chartW2   = W - PAD_L - PAD_R;
+      const endVi     = Math.round(((mp.x - PAD_L) / chartW2) * (vh.length - 1));
+      const barCount  = Math.abs(endVi - ms.vi);
+      const badgeText = `${pctStr}  ${barCount} bar${barCount !== 1 ? 's' : ''}`;
+      const badgeColor = pctChange >= 0 ? '#00ff88' : '#ff4d4d';
+
+      ctx.font = 'bold 11px monospace';
+      const tw = ctx.measureText(badgeText).width;
+      const bx = rx + rw / 2 - tw / 2 - 8;
+      const by = ry + rh / 2 - 11;
+
+      ctx.fillStyle = 'rgba(13,17,23,0.88)';
+      ctx.beginPath();
+      ctx.roundRect(bx, by, tw + 16, 22, 4);
+      ctx.fill();
+
+      ctx.strokeStyle = badgeColor + '66';
+      ctx.lineWidth   = 1;
+      ctx.stroke();
+
+      ctx.fillStyle    = badgeColor;
+      ctx.textAlign    = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(badgeText, bx + 8, by + 11);
+
+      ctx.restore();
+    }
+
     const alive: Particle[] = [];
     for (const p of particlesRef.current) {
       p.vy   += 0.2;
@@ -517,7 +578,10 @@ export default function MainArea() {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     mousePosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    if (activeToolRef.current === 'crosshair' || activeToolRef.current === 'measure') {
+    if (
+      activeToolRef.current === 'crosshair' ||
+      activeToolRef.current === 'measure'
+    ) {
       if (rafRef.current === null) {
         rafRef.current = requestAnimationFrame(() => { rafRef.current = null; draw(); });
       }
@@ -539,6 +603,31 @@ export default function MainArea() {
     const clickedPrice = fromY(canvasY);
     setHLines((prev) => [...prev, parseFloat(clickedPrice.toFixed(2))]);
   }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (activeToolRef.current !== 'measure') return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const fromY = fromYRef.current;
+    const toX   = toXRef.current;
+    if (!fromY || !toX) return;
+    const price = fromY(my);
+    // Compute visible index from x position
+    const vh = visibleHistoryRef.current;
+    const PAD_LEFT = 56, PAD_RIGHT = 64;
+    const containerEl = containerRef.current;
+    const chartW = (containerEl?.getBoundingClientRect().width ?? 0) - PAD_LEFT - PAD_RIGHT;
+    const vi = Math.round(((mx - PAD_LEFT) / chartW) * (vh.length - 1));
+    measureStartRef.current = { x: mx, y: my, price, vi: Math.max(0, Math.min(vi, vh.length - 1)) };
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (activeToolRef.current !== 'measure') return;
+    measureStartRef.current = null;
+    draw();
+  }, [draw]);
 
   // ─── Cursor style per tool ─────────────────────────────────────────────────
   const cursorStyle: Record<Tool, string> = {
@@ -566,7 +655,7 @@ export default function MainArea() {
           <div>
             <p className="text-xs text-white/30 uppercase tracking-widest mb-0.5">Current Price</p>
             <p className={`font-mono text-3xl font-bold ${isUp ? 'text-[#00ff88]' : 'text-[#ff4d4d]'}`}>
-              ${currentPrice.toFixed(2)}
+              ${currentPrice.toFixed(asset === 'EUR/USD' ? 5 : 2)}
             </p>
           </div>
 
@@ -656,6 +745,8 @@ export default function MainArea() {
           style={{ cursor: cursorStyle[activeTool] }}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
           onClick={handleClick}
           onWheel={handleWheel}
         >

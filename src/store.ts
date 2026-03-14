@@ -211,6 +211,9 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       const open = lastCandle.close;
 
       // Each tick is always a 1-second tick — timeframe only affects aggregation in the chart
+      // Dynamic decimal precision: EUR/USD needs 5 decimals, others 2
+      const decimals = state.asset === 'EUR/USD' ? 5 : 2;
+
       let change: number;
       if (state.asset === 'EUR/USD') {
         change = (Math.random() - 0.5) * 0.001;
@@ -221,12 +224,13 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       }
       const close = Math.max(0.0001, open + change);
 
-      const wickUp = open * (Math.random() * 0.005);
-      const wickDown = open * (Math.random() * 0.005);
+      // Wicks proportional to per-tick volatility (not flat % of price)
+      const wickUp   = Math.abs(change) * Math.random() * 1.5;
+      const wickDown = Math.abs(change) * Math.random() * 1.5;
       const high = Math.max(open, close) + wickUp;
-      const low = Math.min(open, close) - wickDown;
+      const low  = Math.min(open, close) - wickDown;
 
-      const price = parseFloat(close.toFixed(2));
+      const price = parseFloat(close.toFixed(decimals));
 
       // ── Step 3: Track trailing extremes ──────────────────────────────────
       let currentTrailingHigh = Math.max(state.trailingHigh, price);
@@ -308,7 +312,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
             newAverageBuyPrice = price;
           } else {
             newAverageBuyPrice = parseFloat(
-              ((newAverageBuyPrice * prevUnits + price * newUnits) / totalUnits).toFixed(8)
+              ((newAverageBuyPrice * prevUnits + price * newUnits) / totalUnits).toFixed(decimals)
             );
           }
 
@@ -367,9 +371,9 @@ export const useSimulationStore = create<SimulationState>((set) => ({
       const allLogs = [...newLogs, ...state.logs].slice(0, 50);
 
       const newCandle: OHLCCandle = {
-        open:  parseFloat(open.toFixed(2)),
-        high:  parseFloat(high.toFixed(2)),
-        low:   parseFloat(low.toFixed(2)),
+        open:  parseFloat(open.toFixed(decimals)),
+        high:  parseFloat(high.toFixed(decimals)),
+        low:   parseFloat(low.toFixed(decimals)),
         close: price,
       };
 
@@ -408,7 +412,8 @@ export const useSimulationStore = create<SimulationState>((set) => ({
     let vRecovery: Record<string, ActivePosition> = {};
     let tradesCount = 0;
 
-    const tfMult = { '1s': 1, '1m': 2, '5m': 4, '1h': 8 }[state.timeframe] ?? 1;
+    // Dynamic decimal precision mirrors tick()
+    const decimals = state.asset === 'EUR/USD' ? 5 : 2;
 
     // ── Step 4: Trailing extremes + avg buy price ─────────────────────────
     let vTrailingHigh = vPrice;
@@ -417,10 +422,10 @@ export const useSimulationStore = create<SimulationState>((set) => ({
 
     for (let i = 0; i < ticks; i++) {
       let change = 0;
-      if (state.asset === 'EUR/USD')      change = (Math.random() - 0.5) * 0.001 * tfMult;
-      else if (state.asset === 'ETH/USD') change = (Math.random() - 0.5) * 40    * tfMult;
-      else                                change = (Math.random() - 0.5) * 300   * tfMult;
-      vPrice = Math.max(0.0001, vPrice + change);
+      if (state.asset === 'EUR/USD')      change = (Math.random() - 0.5) * 0.001;
+      else if (state.asset === 'ETH/USD') change = (Math.random() - 0.5) * 40;
+      else                                change = (Math.random() - 0.5) * 300;
+      vPrice = parseFloat(Math.max(0.0001, vPrice + change).toFixed(decimals));
 
       // Track extremes each tick
       vTrailingHigh = Math.max(vTrailingHigh, vPrice);
@@ -534,7 +539,7 @@ export const useSimulationStore = create<SimulationState>((set) => ({
         netProfit:    parseFloat((endEq - startEq).toFixed(2)),
         totalTrades:  tradesCount,
         ticks,
-        startPrice:   parseFloat(startPrice.toFixed(2)),
+        startPrice:   parseFloat(startPrice.toFixed(decimals)),
         holdReturn,
       }
     };
