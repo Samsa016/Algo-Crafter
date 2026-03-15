@@ -379,7 +379,9 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           }
 
           newActive[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
-          localStorage.setItem('algo_assets', JSON.stringify(newAssets));
+          // Atomic persist: balance reduced + assets increased must land together
+          localStorage.setItem('algo_balance', String(newBalance));
+          localStorage.setItem('algo_assets',  JSON.stringify(newAssets));
 
           // Award XP to both condition and action nodes
           nodeXpGains[conn.fromId] = (nodeXpGains[conn.fromId] ?? 0) + 1;
@@ -417,7 +419,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
           // Reset averageBuyPrice on full exit
           if (pct === 100) newAverageBuyPrice = 0;
-          localStorage.setItem('algo_assets', JSON.stringify(newAssets));
+          // Atomic persist: balance increased + assets reduced + running profit — all together
+          const sellProfit = parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2));
+          localStorage.setItem('algo_balance', String(newBalance));
+          localStorage.setItem('algo_assets',  JSON.stringify(newAssets));
+          localStorage.setItem('algo_profit',  String(sellProfit));
 
           // Award XP to both condition and action nodes
           nodeXpGains[conn.fromId] = (nodeXpGains[conn.fromId] ?? 0) + 1;
@@ -476,11 +482,6 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         : state.nodes;
 
       const tickProfit = parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2));
-      // Persist gamification stats to localStorage whenever a trade closes
-      if (tickRealizedProfit !== 0) {
-        localStorage.setItem('algo_balance', String(newBalance));
-        localStorage.setItem('algo_profit',  String(tickProfit));
-      }
 
       return {
         currentPrice:       price,
