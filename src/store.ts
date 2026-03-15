@@ -157,7 +157,14 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   balance:            Number(localStorage.getItem('algo_balance'))  || 10000,
   totalDeposits:      Number(localStorage.getItem('algo_deposits')) || 10000,
   totalAllTimeProfit: Number(localStorage.getItem('algo_profit'))   || 0,
-  assets: { 'BTC/USD': 0, 'ETH/USD': 0, 'EUR/USD': 0 },
+  assets: (() => {
+    try {
+      const stored = localStorage.getItem('algo_assets');
+      return stored ? JSON.parse(stored) : { 'BTC/USD': 0, 'ETH/USD': 0, 'EUR/USD': 0 };
+    } catch {
+      return { 'BTC/USD': 0, 'ETH/USD': 0, 'EUR/USD': 0 };
+    }
+  })(),
   asset: 'BTC/USD',
   isRunning: false,
   currentPrice: INITIAL_PRICE,
@@ -207,12 +214,14 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
       const newBalance = parseFloat((state.balance + revenue).toFixed(2));
       const newProfit  = parseFloat((state.totalAllTimeProfit + realizedProfit).toFixed(2));
+      const newAssets  = { ...state.assets, [state.asset]: 0 };
       localStorage.setItem('algo_balance', String(newBalance));
       localStorage.setItem('algo_profit',  String(newProfit));
+      localStorage.setItem('algo_assets',  JSON.stringify(newAssets));
 
       return {
         balance:            newBalance,
-        assets:             { ...state.assets, [state.asset]: 0 },
+        assets:             newAssets,
         averageBuyPrice:    0,
         activePositions:    {},
         recoveryModes:      {},
@@ -370,6 +379,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           }
 
           newActive[conn.toId] = { buyPrice: price, triggerPrice: targetPrice, operator };
+          localStorage.setItem('algo_assets', JSON.stringify(newAssets));
 
           // Award XP to both condition and action nodes
           nodeXpGains[conn.fromId] = (nodeXpGains[conn.fromId] ?? 0) + 1;
@@ -407,6 +417,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
           // Reset averageBuyPrice on full exit
           if (pct === 100) newAverageBuyPrice = 0;
+          localStorage.setItem('algo_assets', JSON.stringify(newAssets));
 
           // Award XP to both condition and action nodes
           nodeXpGains[conn.fromId] = (nodeXpGains[conn.fromId] ?? 0) + 1;
