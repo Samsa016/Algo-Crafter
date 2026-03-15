@@ -1,0 +1,33 @@
+{
+  "file_name": "README.md",
+  "revisions": [
+    {
+      "revision_id": "48258e40-3b2f-46ac-a147-1540a232d061",
+      "metadata": {
+        "timestamp": "2026-03-15T13:45:46.492224",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 4910,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": ""
+      },
+      "saved_at": "2026-03-15T13:45:46.493292"
+    },
+    {
+      "revision_id": "eb3b636a-20e2-48ef-abf6-589072185a40",
+      "metadata": {
+        "timestamp": "2026-03-15T13:45:46.487656",
+        "type": "cache_version",
+        "source": "ToolTextFileEdit",
+        "size": 6061,
+        "is_reverted": false,
+        "git_branch_name": "main",
+        "agent_name": "Cody",
+        "description": null
+      },
+      "saved_at": "2026-03-15T13:45:46.490658"
+    }
+  ]
+}

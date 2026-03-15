@@ -67,11 +67,19 @@ export default function MainArea() {
   const TIMEFRAMES = ['1s', '1m', '5m', '1h'] as const;
 
   // ── Zoom state ────────────────────────────────────────────────────────────
-  const [zoomLevel,  setZoomLevel]  = useState(60);
+  const [zoomLevel,  setZoomLevel]  = useState(100);
   // ── Pan offset: how many candles back from the latest we are scrolled ────
   const [panOffset,  setPanOffset]  = useState(0);
 
+  // ── Reset pan/zoom when timeframe changes ─────────────────────────────────
+  useEffect(() => {
+    setPanOffset(0);
+    setZoomLevel(100);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeframe]);
+
   // ── Aggregate + slice visible candles (pan-aware) ─────────────────────────
+  // zoomLevel and panOffset operate purely on aggregatedHistory indices.
   const aggregated = aggregateCandles(priceHistory, timeframe);
   const endIndex   = Math.max(0, aggregated.length - panOffset);
   const startIndex = Math.max(0, endIndex - zoomLevel);
@@ -657,9 +665,11 @@ export default function MainArea() {
   // ─── Mouse-wheel zoom ──────────────────────────────────────────────────────
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
+    const agg = aggregatedRef.current;
     setZoomLevel((prev) => {
       const delta = e.deltaY > 0 ? 10 : -10;
-      return Math.min(500, Math.max(10, prev + delta));
+      // Bounds: min 10 candles, max = full aggregated array length
+      return Math.min(Math.max(agg.length, 10), Math.max(10, prev + delta));
     });
   }, []);
 
@@ -681,8 +691,8 @@ export default function MainArea() {
       const vh = visibleHistoryRef.current;
       // pixels per candle
       const candleWidth = vh.length > 1 ? chartW / (vh.length - 1) : chartW;
-      // drag right (startX > clientX) = go back in time = increase panOffset
-      const candlesShifted = Math.round((dragRef.current.startX - e.clientX) / candleWidth);
+      // drag right (clientX > startX) = going back in time = positive shift = increase panOffset
+      const candlesShifted = Math.round((e.clientX - dragRef.current.startX) / candleWidth);
       const agg = aggregatedRef.current;
       const maxPan = Math.max(0, agg.length - zoomLevelRef.current);
       const newPan = Math.max(0, Math.min(maxPan, dragRef.current.initialPanOffset + candlesShifted));

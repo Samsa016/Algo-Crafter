@@ -153,8 +153,10 @@ const ASSET_BASE_PRICES: Record<string, number> = {
 };
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
-  balance: 10000,
-  totalDeposits: 10000,
+  // ── Persisted stats: restored from localStorage on every page load ────────
+  balance:            Number(localStorage.getItem('algo_balance'))  || 10000,
+  totalDeposits:      Number(localStorage.getItem('algo_deposits')) || 10000,
+  totalAllTimeProfit: Number(localStorage.getItem('algo_profit'))   || 0,
   assets: { 'BTC/USD': 0, 'ETH/USD': 0, 'EUR/USD': 0 },
   asset: 'BTC/USD',
   isRunning: false,
@@ -172,7 +174,6 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   logs: [],
   activePositions: {},
   recoveryModes: {},
-  totalAllTimeProfit: 0,
   activePulseNode: null,
   firstTickPrice: null,
   isExportOpen: false,
@@ -204,14 +205,19 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
       playSound('SELL');
 
+      const newBalance = parseFloat((state.balance + revenue).toFixed(2));
+      const newProfit  = parseFloat((state.totalAllTimeProfit + realizedProfit).toFixed(2));
+      localStorage.setItem('algo_balance', String(newBalance));
+      localStorage.setItem('algo_profit',  String(newProfit));
+
       return {
-        balance:            parseFloat((state.balance + revenue).toFixed(2)),
+        balance:            newBalance,
         assets:             { ...state.assets, [state.asset]: 0 },
         averageBuyPrice:    0,
         activePositions:    {},
         recoveryModes:      {},
         logs:               [panicLog, ...state.logs].slice(0, 50),
-        totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + realizedProfit).toFixed(2)),
+        totalAllTimeProfit: newProfit,
       };
     }),
 
@@ -458,6 +464,13 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           })
         : state.nodes;
 
+      const tickProfit = parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2));
+      // Persist gamification stats to localStorage whenever a trade closes
+      if (tickRealizedProfit !== 0) {
+        localStorage.setItem('algo_balance', String(newBalance));
+        localStorage.setItem('algo_profit',  String(tickProfit));
+      }
+
       return {
         currentPrice:       price,
         trailingHigh:       currentTrailingHigh,
@@ -472,7 +485,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         recoveryModes:      newRecovery,
         connections:        state.connections,
         nodes:              updatedNodes,
-        totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2)),
+        totalAllTimeProfit: tickProfit,
         // Capture the very first price tick as the Ghost Mode benchmark
         firstTickPrice:     state.firstTickPrice ?? price,
       };
@@ -560,8 +573,11 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     })),
 
   deposit: (amount) =>
-    set((state) => ({
-      balance: parseFloat((state.balance + amount).toFixed(2)),
-      totalDeposits: state.totalDeposits + amount,
-    })),
+    set((state) => {
+      const newBalance  = parseFloat((state.balance + amount).toFixed(2));
+      const newDeposits = parseFloat((state.totalDeposits + amount).toFixed(2));
+      localStorage.setItem('algo_balance',  String(newBalance));
+      localStorage.setItem('algo_deposits', String(newDeposits));
+      return { balance: newBalance, totalDeposits: newDeposits };
+    }),
 }));

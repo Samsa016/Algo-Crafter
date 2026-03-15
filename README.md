@@ -1,167 +1,142 @@
-# Algo-Crafter
+# Algo-Crafter: Visual Algorithmic Trading Engine
 
-**Algo-Crafter** — это визуальный конструктор алгоритмов для трейдинга, позволяющий создавать автономные торговые боты без написания кода. Приложение предоставляет интуитивный интерфейс для построения стратегий путем соединения логических узлов, симуляции рынка в реальном времени и анализа результатов.
+> **Built for Quadcode / QC AI Intern Assignment**
 
-## 🚀 Ключевые возможности
-
-### Визуальный конструктор стратегий
-- **Узлы условий (Condition nodes)**: Триггеры на основе цены (Price < X или Price > X)
-- **Узлы действий (Action nodes)**: BUY с фиксированной суммой или SELL с процентом от портфеля
-- **Drag-and-drop интерфейс**: Перетаскивайте узлы и соединяйте их линиями
-- **Визуальные соединения**: Графическое представление логики стратегии
-
-### Симуляция рынка в реальном времени
-- **Поддержка активов**: BTC/USD, ETH/USD, EUR/USD
-- **Реалистичные колебания цен**: Случайные изменения с учетом таймфрейма
-- **Настраиваемая скорость**: От 1x до 100x скорости симуляции
-- **Таймфреймы**: 1 секунда, 1 минута, 5 минут, 1 час
-
-### Графики и аналитика
-- **Два типа графиков**: Линейный и свечной (Candlestick)
-- **Инструменты анализа**: Перекрестие (Crosshair), горизонтальные линии (H-Line), скользящая средняя SMA 20
-- **Маркеры трейдов**: Визуальные индикаторы BUY/SELL на графике
-- **Частицы эффектов**: Анимированные частицы при выполнении трейдов
-
-### Торговый движок
-- **Автоматическое исполнение**: Стратегии выполняются в реальном времени
-- **Управление рисками**: Защита от повторных срабатываний (recovery modes)
-- **Звуковые эффекты**: Web Audio API для звуков BUY, SELL и FAILED
-- **Лог трейдов**: Детальная история всех операций
-
-### Бэктестирование
-- **Турбо-тестирование**: Симуляция 1000 тиков для оценки стратегии
-- **Метрики производительности**: Начальный/конечный капитал, чистая прибыль, количество трейдов
-- **Модальное окно результатов**: Подробный отчет с визуальными акцентами
-
-### Финансовый менеджмент
-- **Депозит средств**: Возможность пополнения баланса
-- **Отслеживание портфеля**: Баланс, активы, эквити (Equity)
-- **Цветовая индикация**: Зеленый для прибыли, красный для убытков
-
-## 🛠 Технологический стек
-
-- **Frontend**: React 18 с TypeScript
-- **Сборка**: Vite
-- **Стилизация**: Tailwind CSS с PostCSS и Autoprefixer
-- **Анимации**: Framer Motion
-- **Состояние**: Zustand (легковесный state manager)
-- **Графика**: HTML5 Canvas для высокопроизводительного рендеринга графиков
-- **Звук**: Web Audio API для синтеза звуков
-
-## 📁 Структура проекта
-
-```
-src/
-├── App.tsx                 # Главный компонент приложения
-├── main.tsx                # Точка входа React
-├── store.ts                # Zustand store с состоянием симуляции
-├── index.css               # Глобальные стили Tailwind
-└── components/
-    ├── Header.tsx          # Верхняя панель с портфелем и контролами
-    ├── MainArea.tsx        # Основная область с графиком и инструментами
-    ├── Sidebar.tsx         # Боковая панель с конструктором стратегий
-    ├── WelcomeModal.tsx    # Приветственное модальное окно
-    └── BacktestModal.tsx   # Модальное окно результатов бэктеста
-```
-
-## 🏗 Архитектура
-
-### State Management (Zustand)
-Приложение использует централизованное состояние с Zustand для:
-- Данных симуляции (цена, баланс, активы)
-- Узлов стратегии и соединений
-- Логов трейдов и результатов бэктеста
-- Настроек графика и симуляции
-
-### Компонентная архитектура
-- **App**: Корневой компонент с эффектом симуляции
-- **Header**: Управление активами, депозитами, старт/стоп симуляции
-- **MainArea**: Canvas-график с инструментами и частицами
-- **Sidebar**: Конструктор стратегий с drag-and-drop узлами
-- **Модалы**: Welcome и Backtest для UX
-
-### Графический движок
-- **Canvas rendering**: Высокопроизводительный рендеринг графиков
-- **Real-time updates**: Перерисовка только при изменениях данных
-- **Particle system**: WebGL-подобные эффекты на Canvas
-- **Responsive design**: Адаптивная верстка с ResizeObserver
-
-## 🚀 Установка и запуск
-
-### Предварительные требования
-- Node.js 16+
-- npm или yarn
-
-### Установка зависимостей
-```bash
-npm install
-```
-
-### Запуск в режиме разработки
-```bash
-npm run dev
-```
-Приложение будет доступно на `http://localhost:5173`
-
-### Сборка для продакшена
-```bash
-npm run build
-```
-
-### Предпросмотр сборки
-```bash
-npm run preview
-```
-
-## 📖 Как использовать
-
-1. **Запустите приложение** и ознакомьтесь с приветственным модальным окном
-2. **Создайте условие**: Нажмите "+ Condition" и настройте триггер цены
-3. **Создайте действие**: Нажмите "+ Action" и выберите BUY/SELL с параметрами
-4. **Соедините узлы**: Перетащите линию от Condition к Action
-5. **Пополните баланс**: Используйте кнопку "Deposit" в заголовке
-6. **Запустите симуляцию**: Нажмите "Start" и наблюдайте за автоматической торговлей
-7. **Анализируйте результаты**: Просматривайте логи и запускайте бэктесты
-
-## 🎨 Дизайн и UX
-
-- **Dark theme**: Современный темный интерфейс в стиле GitHub
-- **Неоновые акценты**: Зеленый (#00ff88) для прибыли, фиолетовый для условий
-- **Анимации**: Плавные переходы с Framer Motion
-- **Звуковой фидбек**: Иммерсивные звуки для трейдов
-- **Responsive**: Адаптивный дизайн для различных экранов
-
-## 🔧 Настройка
-
-### Добавление новых активов
-В `store.ts` добавьте новый актив в `ASSET_BASE_PRICES` и обновите логику генерации цен.
-
-### Кастомизация звуков
-Модифицируйте функцию `playSound` в `store.ts` для изменения звуковых эффектов.
-
-### Расширение узлов
-Добавьте новые типы узлов в интерфейс `StrategyNode` и обновите логику в `tick`.
-
-## 🤝 Contributing
-
-Приветствуются contributions! Пожалуйста:
-1. Fork репозиторий
-2. Создайте feature branch
-3. Commit изменения
-4. Push и создайте Pull Request
-
-## 📄 Лицензия
-
-Этот проект является приватным и предназначен для личного использования.
-
-## 🙏 Acknowledgments
-
-- **React & TypeScript**: За надежную основу
-- **Tailwind CSS**: За утилитарный подход к стилизации
-- **Framer Motion**: За плавные анимации
-- **Zustand**: За простой state management
-- **Vite**: За быструю разработку
+A high-performance, browser-based algorithmic trading simulator with a visual node editor, real-time canvas charting, market simulation, and gamified progression — all running entirely client-side with zero backend.
 
 ---
 
-**Algo-Crafter** — ваш инструмент для создания и тестирования торговых стратегий. Наслаждайтесь визуальным трейдингом! 🚀📈
+## ✨ Features
+
+### 🔗 Visual Node-Based Strategy Editor
+- Drag-and-drop **CONDITION** and **ACTION** nodes onto an infinite canvas
+- Wire nodes together to form autonomous trading strategies
+- Supported conditions: `price < X`, `price > X`, `drop N%`, `rise N%`
+- Supported actions: `BUY $amount`, `SELL N%`
+- Real-time **wire pulse animation** on every trade execution
+- Node **XP & Level system** — nodes level up as they execute successful trades
+- State managed with **Zustand** for zero-boilerplate reactivity
+
+### 📈 High-Performance Canvas Charting
+- Custom **Canvas 2D** renderer — no chart library dependencies
+- **Line** and **Candlestick** chart modes with smooth bezier curves
+- **Timeframes**: `1s`, `1m`, `5m`, `1h` — all aggregated from raw tick data
+- **Zoom** (mouse wheel) and **Pan** (drag) with correct index-based math
+- Pan/zoom reset on timeframe switch
+- **SMA 20** overlay toggle
+- **Horizontal lines** (click to place, bulk clear)
+- **Trend lines** (drag to draw, anchored to aggregated candle indices)
+- **Measure tool** — drag a rectangle to see % change and bar count
+- **Crosshair** with live price label on Y-axis
+- **Trade markers** (B/S dots) pinned to exact candle positions
+- **Drawdown heatmap** — chart border glows red when equity < deposits
+
+### ⚡ Real-Time Market Simulation
+- Tick-based price engine with per-asset volatility profiles (`BTC/USD`, `ETH/USD`, `EUR/USD`)
+- Realistic OHLC candle generation with proportional wicks
+- Adjustable simulation speed: `1x` → `100x`
+- **God Mode** shocks: instant `+15% MOON` or `-20% CRASH` events
+- Trailing high/low tracking for drop/rise condition evaluation
+- **Profit Protection**: SELL nodes skip execution if price ≤ average buy price
+- **Recovery mode**: nodes re-arm only after price crosses back through trigger
+
+### 🐍 Auto-Generated Python CCXT Scripts
+- One-click **Export** generates a production-ready Python script
+- Uses the [CCXT](https://github.com/ccxt/ccxt) library for live exchange connectivity
+- Mirrors the exact node graph logic: conditions → actions → cooldowns
+- Ready to run against Binance, Kraken, Coinbase, and 100+ exchanges
+
+### 🏆 Gamification & Ranks
+- **All-time profit** tracked and persisted across sessions
+- Rank ladder: `Novice Trader` → `Apprentice` → `Journeyman` → `Expert` → `Master` → `Grandmaster` → `Legend`
+- **Ghost Mode equity**: compares your strategy vs. a simple buy-and-hold benchmark
+- **Panic button**: close all positions instantly at market price
+- **Deposit system**: add funds mid-session to keep strategies running
+
+### 💾 LocalStorage Persistence
+- `balance`, `totalDeposits`, and `totalAllTimeProfit` survive page reloads
+- Keys: `algo_balance`, `algo_deposits`, `algo_profit`
+- Written on every SELL execution, deposit, and panic close
+
+---
+
+## 🚀 Getting Started
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | React 18 + TypeScript |
+| State | Zustand |
+| Styling | Tailwind CSS |
+| Animation | Framer Motion |
+| Charting | Custom Canvas 2D API |
+| Audio | Web Audio API |
+| Build | Vite |
+| Export | CCXT (Python codegen) |
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── components/
+│   ├── MainArea.tsx      # Canvas chart + toolbar + pan/zoom
+│   ├── Sidebar.tsx       # Node editor canvas + live analytics
+│   ├── Header.tsx        # Asset selector + God Mode controls
+│   ├── ExportModal.tsx   # Python CCXT script generator
+│   └── WelcomeModal.tsx  # Onboarding modal
+├── store.ts              # Zustand store — all simulation state + actions
+├── templates.ts          # DCA / Grid / Guard strategy templates
+└── main.tsx              # App entry point
+```
+
+---
+
+## 📊 Strategy Templates
+
+| Template | Logic | Use Case |
+|---|---|---|
+| **DCA** | Drop 5% → BUY $1000 / Rise 5% → SELL 100% | Trending markets |
+| **Grid Scalper** | Drop 2% → BUY $500 / Rise 2% → SELL 25% | Range-bound markets |
+| **Guard** | Drop 3% → BUY $500 / Drop 10% → SELL 100% | Capital protection |
+
+---
+
+## 🎮 Controls
+
+| Action | Control |
+|---|---|
+| Zoom chart | Mouse wheel |
+| Pan chart | Drag (cursor tool) |
+| Place H-Line | Click (H-Line tool) |
+| Draw trend line | Drag (Trend Line tool) |
+| Measure range | Drag (Measure tool) |
+| Toggle SMA 20 | `S` button in toolbar |
+| Panic sell all | 🛑 Panic button in Live Analytics |
+
+---
+
+## 📝 License
+
+MIT — free to use, modify, and distribute.
+
+---
+
+*Algo-Crafter — where strategy meets simulation.*
