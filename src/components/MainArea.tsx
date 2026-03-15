@@ -11,14 +11,24 @@ interface Particle {
 }
 
 // ─── Toolbar tool type ────────────────────────────────────────────────────────
-type Tool = 'cursor' | 'crosshair' | 'hline' | 'measure';
+type Tool = 'cursor' | 'crosshair' | 'hline' | 'measure' | 'trendline';
 
 const TOOLBAR_TOOLS: { id: Tool; label: string; icon: string }[] = [
-  { id: 'cursor',    label: 'Cursor',    icon: '↖' },
-  { id: 'crosshair', label: 'Crosshair', icon: '⊕' },
-  { id: 'hline',     label: 'H-Line',    icon: '—' },
-  { id: 'measure',   label: 'Measure',   icon: '📏' },
+  { id: 'cursor',    label: 'Cursor',     icon: '↖'  },
+  { id: 'crosshair', label: 'Crosshair',  icon: '⊕'  },
+  { id: 'hline',     label: 'H-Line',     icon: '—'  },
+  { id: 'measure',   label: 'Measure',    icon: '📏' },
+  { id: 'trendline', label: 'Trend Line', icon: '📉' },
 ];
+
+// ─── Trend line type ──────────────────────────────────────────────────────────
+// Anchored to aggregated-candle indices + prices so panning/zoom keeps them correct
+interface TrendLine {
+  startAggIdx: number;  // index in aggregated[] array
+  startPrice:  number;
+  endAggIdx:   number;
+  endPrice:    number;
+}
 
 // ─── Candle aggregation ───────────────────────────────────────────────────────
 // 1 tick = 1 second. Chunks: 1s=1, 1m=60, 5m=300, 1h=3600
@@ -56,12 +66,16 @@ export default function MainArea() {
 
   const TIMEFRAMES = ['1s', '1m', '5m', '1h'] as const;
 
-  // ── Zoom state (replaces visibleCandlesMap) ───────────────────────────────
-  const [zoomLevel, setZoomLevel] = useState(60);
+  // ── Zoom state ────────────────────────────────────────────────────────────
+  const [zoomLevel,  setZoomLevel]  = useState(60);
+  // ── Pan offset: how many candles back from the latest we are scrolled ────
+  const [panOffset,  setPanOffset]  = useState(0);
 
-  // ── Aggregate + slice visible candles ────────────────────────────────────
-  const aggregated    = aggregateCandles(priceHistory, timeframe);
-  const visibleHistory = aggregated.slice(-zoomLevel);
+  // ── Aggregate + slice visible candles (pan-aware) ─────────────────────────
+  const aggregated = aggregateCandles(priceHistory, timeframe);
+  const endIndex   = Math.max(0, aggregated.length - panOffset);
+  const startIndex = Math.max(0, endIndex - zoomLevel);
+  const visibleHistory = aggregated.slice(startIndex, endIndex);
 
   const lastClose  = visibleHistory[visibleHistory.length - 1]?.close ?? currentPrice;
   const firstClose = visibleHistory[0]?.close ?? currentPrice;
@@ -73,6 +87,9 @@ export default function MainArea() {
   const [activeTool, setActiveTool] = useState<Tool>('cursor');
   const [hLines, setHLines] = useState<number[]>([]);
   const [showSMA, setShowSMA] = useState(false);
+
+  // ── Trendline state ───────────────────────────────────────────────────────
+  const [trendLines, setTrendLines] = useState<TrendLine[]>([]);
 
   // ─── Refs ──────────────────────────────────────────────────────────────────
   const canvasRef    = useRef<HTMLCanvasElement>(null);
@@ -97,6 +114,18 @@ export default function MainArea() {
   // Measure tool: tracks drag start point
   const measureStartRef = useRef<{ x: number; y: number; price: number; vi: number } | null>(null);
 
+  // ── Panning drag ref ──────────────────────────────────────────────────────
+  const dragRef = useRef({ isDragging: false, startX: 0, initialPanOffset: 0 });
+
+  // ── Trendline drawing ref (in-progress line, not yet committed) ───────────
+  const trendlineDrawingRef = useRef<{
+    active:       boolean;
+    startAggIdx:  number;
+    startPrice:   number;
+    endAggIdx:    number;
+    endPrice:     number;
+  }>({ active: false, startAggIdx: 0, startPrice: 0, endAggIdx: 0, endPrice: 0 });
+
   // Stable refs for toX/toY so click handler & spawner can use them
   const toXRef   = useRef<((i: number) => number) | null>(null);
   const toYRef   = useRef<((p: number) => number) | null>(null);
@@ -111,7 +140,9 @@ export default function MainArea() {
   const chartTradesRef     = useRef(chartTrades);
   const timeframeRef       = useRef(timeframe);
   const zoomLevelRef       = useRef(zoomLevel);
+  const panOffsetRef       = useRef(panOffset);
   const assetRef           = useRef(asset);
+  const trendLinesRef      = useRef(trendLines);
   visibleHistoryRef.current  = visibleHistory;
   aggregatedRef.current      = aggregated;
   priceHistoryRef.current    = priceHistory;
@@ -120,7 +151,9 @@ export default function MainArea() {
   chartTradesRef.current     = chartTrades;
   timeframeRef.current       = timeframe;
   zoomLevelRef.current       = zoomLevel;
+  panOffsetRef.current       = panOffset;
   assetRef.current           = asset;
+  trendLinesRef.current      = trendLines;
 
   // ─── Core draw function (stable — never recreated) ────────────────────────
   const draw = useCallback(() => {
@@ -298,8 +331,9 @@ export default function MainArea() {
     // Map raw historyIndex → aggregated candle index
     const chunk = TF_CHUNK[timeframeRef.current] ?? 1;
     const agg   = aggregatedRef.current;
-    // visibleHistory starts at offset (agg.length - zoomLevel) within aggregated
-    const aggOffset = Math.max(0, agg.length - zoomLevelRef.current);
+    // aggOffset = start of the visible window inside aggregated[] (pan-aware)
+    const aggEnd    = Math.max(0, agg.length - panOffsetRef.current);
+    const aggOffset = Math.max(0, aggEnd - zoomLevelRef.current);
     const MARKER_RADIUS = 8;
 
     for (const trade of chartTradesRef.current) {
@@ -346,7 +380,7 @@ export default function MainArea() {
       let firstSMA = true;
 
       for (let vi = 0; vi < vh.length; vi++) {
-        const globalAggIdx = aggOffset + vi;
+        const globalAggIdx = aggOffset + vi;  // aggOffset already pan-aware
         if (globalAggIdx < 19) continue;
         let sum = 0;
         for (let j = 0; j < 20; j++) sum += agg[globalAggIdx - j].close;
@@ -385,6 +419,61 @@ export default function MainArea() {
     }
     ctx.setLineDash([]);
     ctx.restore();
+
+    // ── Trend Lines ───────────────────────────────────────────────────────────
+    // Render committed trendlines + the in-progress one being drawn
+    const renderTrendLines = [...trendLinesRef.current];
+    const tld = trendlineDrawingRef.current;
+    if (tld.active) {
+      renderTrendLines.push({
+        startAggIdx: tld.startAggIdx,
+        startPrice:  tld.startPrice,
+        endAggIdx:   tld.endAggIdx,
+        endPrice:    tld.endPrice,
+      });
+    }
+
+    if (renderTrendLines.length > 0) {
+      ctx.save();
+      for (const tl of renderTrendLines) {
+        // Convert absolute agg indices → visible indices
+        const viStart = tl.startAggIdx - aggOffset;
+        const viEnd   = tl.endAggIdx   - aggOffset;
+
+        // Both endpoints must be within the visible window (or at least partially)
+        // We clamp to chart edges so lines that extend off-screen still draw correctly
+        const x1 = PAD.left + (viStart / (vh.length - 1)) * chartW;
+        const y1 = toY(tl.startPrice);
+        const x2 = PAD.left + (viEnd   / (vh.length - 1)) * chartW;
+        const y2 = toY(tl.endPrice);
+
+        // Skip if both endpoints are completely outside the chart area
+        const bothLeft  = x1 < PAD.left  && x2 < PAD.left;
+        const bothRight = x1 > W - PAD.right && x2 > W - PAD.right;
+        if (bothLeft || bothRight) continue;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth   = 1.5;
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur  = 6;
+        ctx.setLineDash([]);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Endpoint dots
+        ctx.beginPath();
+        ctx.arc(x1, y1, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x2, y2, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
 
     // ── Crosshair ─────────────────────────────────────────────────────────────
     const mp = mousePosRef.current;
@@ -509,7 +598,7 @@ export default function MainArea() {
     }
     draw();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleHistory, priceHistory, chartType, accentColor, chartTrades, hLines, zoomLevel]);
+  }, [visibleHistory, priceHistory, chartType, accentColor, chartTrades, hLines, zoomLevel, panOffset, trendLines]);
 
   // ─── ResizeObserver ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -536,7 +625,8 @@ export default function MainArea() {
     const vh      = visibleHistoryRef.current;
     const chunk   = TF_CHUNK[timeframeRef.current] ?? 1;
     const agg     = aggregatedRef.current;
-    const aggOff  = Math.max(0, agg.length - zoomLevelRef.current);
+    const aggEnd  = Math.max(0, agg.length - panOffsetRef.current);
+    const aggOff  = Math.max(0, aggEnd - zoomLevelRef.current);
 
     for (const trade of newTrades) {
       const aggIdx = Math.floor(trade.historyIndex / chunk);
@@ -577,11 +667,53 @@ export default function MainArea() {
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    mousePosRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    if (
-      activeToolRef.current === 'crosshair' ||
-      activeToolRef.current === 'measure'
-    ) {
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    mousePosRef.current = { x: mx, y: my };
+
+    const tool = activeToolRef.current;
+
+    // ── Cursor panning ──────────────────────────────────────────────────────
+    if (tool === 'cursor' && dragRef.current.isDragging) {
+      const containerEl = containerRef.current;
+      const PAD_LEFT = 56, PAD_RIGHT = 64;
+      const chartW = (containerEl?.getBoundingClientRect().width ?? 0) - PAD_LEFT - PAD_RIGHT;
+      const vh = visibleHistoryRef.current;
+      // pixels per candle
+      const candleWidth = vh.length > 1 ? chartW / (vh.length - 1) : chartW;
+      const pixelsDelta = e.clientX - dragRef.current.startX;
+      // dragging right = going back in time = increasing panOffset
+      const candlesShifted = Math.round(-pixelsDelta / candleWidth);
+      const agg = aggregatedRef.current;
+      const maxPan = Math.max(0, agg.length - zoomLevelRef.current);
+      const newPan = Math.max(0, Math.min(maxPan, dragRef.current.initialPanOffset + candlesShifted));
+      setPanOffset(newPan);
+      return; // no crosshair redraw needed during pan
+    }
+
+    // ── Trendline in-progress update ────────────────────────────────────────
+    if (tool === 'trendline' && trendlineDrawingRef.current.active) {
+      const fromY = fromYRef.current;
+      if (!fromY) return;
+      const PAD_LEFT = 56, PAD_RIGHT = 64;
+      const containerEl = containerRef.current;
+      const chartW = (containerEl?.getBoundingClientRect().width ?? 0) - PAD_LEFT - PAD_RIGHT;
+      const vh = visibleHistoryRef.current;
+      const agg = aggregatedRef.current;
+      const aggEnd = Math.max(0, agg.length - panOffsetRef.current);
+      const aggOffset = Math.max(0, aggEnd - zoomLevelRef.current);
+      const viEnd = Math.round(((mx - PAD_LEFT) / chartW) * (vh.length - 1));
+      const clampedVi = Math.max(0, Math.min(vh.length - 1, viEnd));
+      trendlineDrawingRef.current.endAggIdx = aggOffset + clampedVi;
+      trendlineDrawingRef.current.endPrice  = fromY(my);
+      if (rafRef.current === null) {
+        rafRef.current = requestAnimationFrame(() => { rafRef.current = null; draw(); });
+      }
+      return;
+    }
+
+    // ── Crosshair / measure redraw ───────────────────────────────────────────
+    if (tool === 'crosshair' || tool === 'measure' || tool === 'trendline') {
       if (rafRef.current === null) {
         rafRef.current = requestAnimationFrame(() => { rafRef.current = null; draw(); });
       }
@@ -590,7 +722,16 @@ export default function MainArea() {
 
   const handleMouseLeave = useCallback(() => {
     mousePosRef.current = null;
-    if (activeToolRef.current === 'crosshair' || activeToolRef.current === 'measure') draw();
+    // Stop panning
+    dragRef.current.isDragging = false;
+    // Cancel in-progress trendline
+    if (trendlineDrawingRef.current.active) {
+      trendlineDrawingRef.current.active = false;
+      draw();
+      return;
+    }
+    const tool = activeToolRef.current;
+    if (tool === 'crosshair' || tool === 'measure' || tool === 'trendline') draw();
   }, [draw]);
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -605,36 +746,104 @@ export default function MainArea() {
   }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (activeToolRef.current !== 'measure') return;
+    const tool = activeToolRef.current;
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    const fromY = fromYRef.current;
-    const toX   = toXRef.current;
-    if (!fromY || !toX) return;
-    const price = fromY(my);
-    // Compute visible index from x position
-    const vh = visibleHistoryRef.current;
-    const PAD_LEFT = 56, PAD_RIGHT = 64;
-    const containerEl = containerRef.current;
-    const chartW = (containerEl?.getBoundingClientRect().width ?? 0) - PAD_LEFT - PAD_RIGHT;
-    const vi = Math.round(((mx - PAD_LEFT) / chartW) * (vh.length - 1));
-    measureStartRef.current = { x: mx, y: my, price, vi: Math.max(0, Math.min(vi, vh.length - 1)) };
+
+    // ── Cursor: start panning ───────────────────────────────────────────────
+    if (tool === 'cursor') {
+      dragRef.current = {
+        isDragging:       true,
+        startX:           e.clientX,
+        initialPanOffset: panOffsetRef.current,
+      };
+      return;
+    }
+
+    // ── Trendline: start drawing ────────────────────────────────────────────
+    if (tool === 'trendline') {
+      const fromY = fromYRef.current;
+      if (!fromY) return;
+      const PAD_LEFT = 56, PAD_RIGHT = 64;
+      const containerEl = containerRef.current;
+      const chartW = (containerEl?.getBoundingClientRect().width ?? 0) - PAD_LEFT - PAD_RIGHT;
+      const vh = visibleHistoryRef.current;
+      const agg = aggregatedRef.current;
+      const aggEnd = Math.max(0, agg.length - panOffsetRef.current);
+      const aggOffset = Math.max(0, aggEnd - zoomLevelRef.current);
+      const vi = Math.round(((mx - PAD_LEFT) / chartW) * (vh.length - 1));
+      const clampedVi = Math.max(0, Math.min(vh.length - 1, vi));
+      const startAggIdx = aggOffset + clampedVi;
+      const startPrice  = fromY(my);
+      trendlineDrawingRef.current = {
+        active:      true,
+        startAggIdx,
+        startPrice,
+        endAggIdx:   startAggIdx,
+        endPrice:    startPrice,
+      };
+      return;
+    }
+
+    // ── Measure: start rectangle ────────────────────────────────────────────
+    if (tool === 'measure') {
+      const fromY = fromYRef.current;
+      if (!fromY) return;
+      const price = fromY(my);
+      const PAD_LEFT = 56, PAD_RIGHT = 64;
+      const containerEl = containerRef.current;
+      const chartW = (containerEl?.getBoundingClientRect().width ?? 0) - PAD_LEFT - PAD_RIGHT;
+      const vh = visibleHistoryRef.current;
+      const vi = Math.round(((mx - PAD_LEFT) / chartW) * (vh.length - 1));
+      measureStartRef.current = { x: mx, y: my, price, vi: Math.max(0, Math.min(vi, vh.length - 1)) };
+    }
   }, []);
 
   const handleMouseUp = useCallback(() => {
-    if (activeToolRef.current !== 'measure') return;
-    measureStartRef.current = null;
-    draw();
+    const tool = activeToolRef.current;
+
+    // ── Stop panning ────────────────────────────────────────────────────────
+    if (tool === 'cursor') {
+      dragRef.current.isDragging = false;
+      return;
+    }
+
+    // ── Finalize trendline ──────────────────────────────────────────────────
+    if (tool === 'trendline') {
+      const tld = trendlineDrawingRef.current;
+      if (tld.active && tld.startAggIdx !== tld.endAggIdx) {
+        // Commit only if the user actually dragged (not just a click)
+        setTrendLines((prev) => [
+          ...prev,
+          {
+            startAggIdx: tld.startAggIdx,
+            startPrice:  tld.startPrice,
+            endAggIdx:   tld.endAggIdx,
+            endPrice:    tld.endPrice,
+          },
+        ]);
+      }
+      trendlineDrawingRef.current.active = false;
+      draw();
+      return;
+    }
+
+    // ── Clear measure ───────────────────────────────────────────────────────
+    if (tool === 'measure') {
+      measureStartRef.current = null;
+      draw();
+    }
   }, [draw]);
 
   // ─── Cursor style per tool ─────────────────────────────────────────────────
   const cursorStyle: Record<Tool, string> = {
-    cursor:    'default',
+    cursor:    dragRef.current.isDragging ? 'grabbing' : 'grab',
     crosshair: 'crosshair',
     hline:     'row-resize',
     measure:   'crosshair',
+    trendline: 'crosshair',
   };
 
   return (
@@ -826,6 +1035,20 @@ export default function MainArea() {
                       </button>
                     </>
                   )}
+
+                  {/* Clear Trend Lines (only when lines exist) */}
+                  {trendLines.length > 0 && (
+                    <>
+                      <div className="w-full h-px bg-white/10 my-0.5" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setTrendLines([]); }}
+                        title="Clear all Trend Lines"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-transparent text-[#f59e0b]/30 hover:text-[#f59e0b] hover:bg-[#f59e0b]/10 hover:border-[#f59e0b]/20 transition-all text-xs"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -841,9 +1064,9 @@ export default function MainArea() {
             </div>
           )}
 
-          {/* Zoom hint */}
+          {/* Zoom / pan hint */}
           <div className="absolute bottom-3 right-4 z-10 text-[9px] font-mono text-white/15 pointer-events-none select-none">
-            scroll to zoom · {zoomLevel} candles
+            scroll to zoom · drag to pan · {zoomLevel} candles{panOffset > 0 ? ` · -${panOffset}` : ''}
           </div>
         </div>
 
