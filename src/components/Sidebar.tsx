@@ -394,6 +394,7 @@ export default function Sidebar() {
     nodes, logs, addNode, connectNodes,
     balance, assets, asset, currentPrice, totalDeposits,
     loadTemplate, openExport, activePulseNode,
+    firstTickPrice, closeAllPositions,
   } = useSimulationStore();
   const [pendingFrom, setPendingFrom] = useState<string | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
@@ -581,11 +582,24 @@ export default function Sidebar() {
           ? '0 0 12px rgba(0,255,136,0.6)'
           : '0 0 12px rgba(255,77,77,0.6)';
         const profitSign = isProfit ? '+' : '';
+        // Ghost Mode: what would a simple buy-and-hold be worth right now?
+        const ghostEquity = firstTickPrice
+          ? (totalDeposits / firstTickPrice) * currentPrice
+          : totalDeposits;
         return (
           <div className="bg-[#161b22]/80 backdrop-blur-md border border-white/10 rounded-xl p-4 shrink-0">
-            <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mb-3">
-              Live Analytics
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold">
+                Live Analytics
+              </p>
+              <button
+                onClick={closeAllPositions}
+                title="Panic sell all positions"
+                className="text-[9px] px-2 py-0.5 rounded border border-[#ff4d4d]/40 text-[#ff4d4d] hover:bg-[#ff4d4d]/20 transition-all tracking-widest uppercase"
+              >
+                🛑 Panic
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {/* Net Profit */}
               <div
@@ -601,6 +615,11 @@ export default function Sidebar() {
                 >
                   {profitSign}{netProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                 </span>
+                <div className="text-[9px] text-white/40 mt-1 font-mono">
+                  Hold (Ghost): <span style={{ color: ghostEquity >= totalDeposits ? 'rgba(0,255,136,0.7)' : 'rgba(255,77,77,0.7)' }}>
+                    ${ghostEquity.toFixed(2)}
+                  </span>
+                </div>
               </div>
               {/* Total Trades */}
               <div className="rounded-lg p-3 flex flex-col gap-1 bg-white/[0.03] border border-white/10">

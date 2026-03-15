@@ -118,8 +118,10 @@ interface SimulationState {
   recoveryModes: Record<string, ActivePosition>;
   totalAllTimeProfit: number;
   activePulseNode: string | null;
+  firstTickPrice: number | null;
 
   toggleSimulation: () => void;
+  closeAllPositions: () => void;
   tick: () => void;
   triggerPulse: (nodeId: string) => void;
   setChartType: (type: 'LINE' | 'CANDLE') => void;
@@ -172,10 +174,46 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   recoveryModes: {},
   totalAllTimeProfit: 0,
   activePulseNode: null,
+  firstTickPrice: null,
   isExportOpen: false,
 
   toggleSimulation: () =>
     set((state) => ({ isRunning: !state.isRunning })),
+
+  // ── Close All (Panic) — sell entire position at current price ─────────────
+  closeAllPositions: () =>
+    set((state) => {
+      const units = state.assets[state.asset] ?? 0;
+      if (units <= 0) return {};
+
+      const price    = state.currentPrice;
+      const decimals = state.asset === 'EUR/USD' ? 5 : 2;
+      const revenue  = parseFloat((units * price).toFixed(2));
+      const costBasis = units * (state.averageBuyPrice > 0 ? state.averageBuyPrice : price);
+      const realizedProfit = parseFloat((revenue - costBasis).toFixed(2));
+
+      const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+      const tradeId = `panic-${Date.now()}`;
+
+      const panicLog: TradeLog = {
+        id:      tradeId,
+        message: `Panic Sold All (${units.toFixed(6)} ${state.asset}, $${revenue}) @ $${price.toFixed(decimals)}`,
+        time:    timeStr,
+        type:    'SELL',
+      };
+
+      playSound('SELL');
+
+      return {
+        balance:            parseFloat((state.balance + revenue).toFixed(2)),
+        assets:             { ...state.assets, [state.asset]: 0 },
+        averageBuyPrice:    0,
+        activePositions:    {},
+        recoveryModes:      {},
+        logs:               [panicLog, ...state.logs].slice(0, 50),
+        totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + realizedProfit).toFixed(2)),
+      };
+    }),
 
   // ── Visual pulse: lights up the wire for 800ms ────────────────────────────
   triggerPulse: (nodeId) => {
@@ -207,6 +245,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         connections: [],
         activePositions: {},
         recoveryModes: {},
+        firstTickPrice: null,
       };
     }),
 
@@ -434,6 +473,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         connections:        state.connections,
         nodes:              updatedNodes,
         totalAllTimeProfit: parseFloat((state.totalAllTimeProfit + tickRealizedProfit).toFixed(2)),
+        // Capture the very first price tick as the Ghost Mode benchmark
+        firstTickPrice:     state.firstTickPrice ?? price,
       };
     }),
 

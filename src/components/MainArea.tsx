@@ -681,9 +681,8 @@ export default function MainArea() {
       const vh = visibleHistoryRef.current;
       // pixels per candle
       const candleWidth = vh.length > 1 ? chartW / (vh.length - 1) : chartW;
-      const pixelsDelta = e.clientX - dragRef.current.startX;
-      // dragging right = going back in time = increasing panOffset
-      const candlesShifted = Math.round(-pixelsDelta / candleWidth);
+      // drag right (startX > clientX) = go back in time = increase panOffset
+      const candlesShifted = Math.round((dragRef.current.startX - e.clientX) / candleWidth);
       const agg = aggregatedRef.current;
       const maxPan = Math.max(0, agg.length - zoomLevelRef.current);
       const newPan = Math.max(0, Math.min(maxPan, dragRef.current.initialPanOffset + candlesShifted));
