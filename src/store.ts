@@ -93,7 +93,7 @@ export interface ActivePosition {
   operator?: 'lt' | 'gt' | 'drop' | 'rise';
 }
 
-const HISTORY_CAP = 10000;
+const HISTORY_CAP = 10000000;
 
 interface SimulationState {
   balance: number;
