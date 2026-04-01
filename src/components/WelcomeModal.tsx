@@ -6,7 +6,7 @@ const STEPS = [
   {
     id: 1,
     eyebrow: 'Welcome',
-    title: <>Welcome to Algo<span style={{ color: '#00ff88' }}>-Crafter</span></>,
+    title: <>Welcome to Trade<span style={{ color: '#00ff88' }}>Sandbox</span></>,
     accent: '#00ff88',
     icon: '⚡',
     body: (

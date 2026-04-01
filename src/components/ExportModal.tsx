@@ -63,11 +63,11 @@ function generatePython(
 
   const rulesBlock = pairLines.length > 0
     ? pairLines.join('\n\n')
-    : '    pass  # No rules — add Condition→Action nodes in Algo-Crafter';
+    : '    pass  # No rules — add Condition→Action nodes in TradeSandbox';
 
   return [
     '"""',
-    'Algo-Crafter — Auto-Generated Strategy',
+    'TradeSandbox — Auto-Generated Strategy',
     `Asset  : ${asset}`,
     `Nodes  : ${nodes.length}  |  Rules: ${pairs.length}`,
     '"""',
@@ -153,7 +153,7 @@ export default function ExportModal() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-[10px] text-white/30 uppercase tracking-widest font-semibold mb-0.5">
-                    Algo-Crafter
+                    TradeSandbox
                   </p>
                   <h2 className="text-lg font-bold tracking-widest text-white uppercase leading-none">
                     Export <span className="text-[#60a5fa]">Python</span>

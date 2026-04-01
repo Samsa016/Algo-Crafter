@@ -1,4 +1,4 @@
-# Algo-Crafter: Visual Algorithmic Trading Engine
+# TradeSandbox: Visual Algorithmic Trading Engine
 
 > **Built for Quadcode / QC AI Intern Assignment**
 
@@ -139,4 +139,4 @@ MIT — free to use, modify, and distribute.
 
 ---
 
-*Algo-Crafter — where strategy meets simulation.*
+*TradeSandbox — where strategy meets simulation.*

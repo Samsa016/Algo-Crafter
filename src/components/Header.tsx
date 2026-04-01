@@ -48,7 +48,7 @@ export default function Header() {
       {/* ── Left: Logo + Rank Badge + Asset Switcher ── */}
       <div className="flex items-center gap-4">
         <span className="text-xl font-bold tracking-widest text-white uppercase">
-          Algo<span className="text-[#00ff88]">-Crafter</span>
+          Trade<span className="text-[#00ff88]">Sandbox</span>
         </span>
 
         {/* Rank Badge */}

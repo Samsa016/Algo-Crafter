@@ -657,12 +657,6 @@ export default function Sidebar() {
               Social Feed
             </p>
           </div>
-          <button
-            onClick={openExport}
-            className="text-[9px] px-2 py-1 rounded bg-[#3b82f6]/10 text-[#60a5fa] border border-[#3b82f6]/30 hover:bg-[#3b82f6]/20 transition-all uppercase tracking-widest font-bold"
-          >
-            🐍 Export
-          </button>
         </div>
 
         {/* Ticker */}
@@ -698,30 +692,28 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* ── IQ Option CTA ── */}
-      <a
-        href="https://iqoption.com/en"
-        target="_blank"
-        rel="noopener noreferrer"
+      {/* ── Export CTA ── */}
+      <button
+        onClick={openExport}
         className="shrink-0 block w-full py-4 rounded-xl text-center font-black uppercase tracking-widest text-sm transition-all active:scale-95 select-none"
         style={{
-          background: 'linear-gradient(135deg, #f97316, #dc2626)',
-          boxShadow: '0 0 30px rgba(249,115,22,0.5), 0 0 60px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
+          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+          boxShadow: '0 0 30px rgba(59,130,246,0.5), 0 0 60px rgba(29,78,216,0.25), inset 0 1px 0 rgba(255,255,255,0.15)',
           color: '#fff',
           textShadow: '0 1px 4px rgba(0,0,0,0.4)',
           border: '1px solid rgba(255,255,255,0.15)',
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-            '0 0 45px rgba(249,115,22,0.7), 0 0 80px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
+          (e.currentTarget as HTMLButtonElement).style.boxShadow =
+            '0 0 45px rgba(59,130,246,0.7), 0 0 80px rgba(29,78,216,0.4), inset 0 1px 0 rgba(255,255,255,0.2)';
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-            '0 0 30px rgba(249,115,22,0.5), 0 0 60px rgba(220,38,38,0.25), inset 0 1px 0 rgba(255,255,255,0.15)';
+          (e.currentTarget as HTMLButtonElement).style.boxShadow =
+            '0 0 30px rgba(59,130,246,0.5), 0 0 60px rgba(29,78,216,0.25), inset 0 1px 0 rgba(255,255,255,0.15)';
         }}
       >
-        🚀 TRADE LIVE ON IQ OPTION
-      </a>
+        🐍 EXPORT STRATEGY
+      </button>
 
       {/* ── Strategy Log ── */}
       <div className="bg-[#161b22]/80 backdrop-blur-md border border-white/10 rounded-xl p-4 flex flex-col h-[28vh] min-h-[140px]">
